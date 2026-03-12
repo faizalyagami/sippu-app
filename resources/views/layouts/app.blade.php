@@ -408,6 +408,23 @@
 
         <!-- Page Content -->
         <div id="content">
+            @php
+                use App\Models\Notification;
+                
+                $unreadNotifications = 0;
+                $recentNotifications = collect([]);
+                
+                if (Auth::check()) {
+                    $unreadNotifications = Notification::where('user_id', Auth::id())
+                        ->where('is_read', false)
+                        ->count();
+                        
+                    $recentNotifications = Notification::where('user_id', Auth::id())
+                        ->orderBy('created_at', 'desc')
+                        ->limit(5)
+                        ->get();
+                }
+            @endphp
             <!-- Navbar -->
             <nav class="navbar navbar-expand-lg">
                 <div class="container-fluid">
@@ -430,64 +447,36 @@
                         </div>
 
                         <!-- Notifications -->
-                        <div class="dropdown">
-                            <button class="nav-link position-relative" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-bell"></i>
-                                @php
-                                    try {
-                                        $unreadNotifications = Auth::user()->notifications()
-                                            ->where('is_read', false)
-                                            ->count();
-                                    } catch (\Exception $e) {
-                                        $unreadNotifications = 0;
-                                    }
-                                @endphp
-                                @if($unreadNotifications > 0)
-                                    <span class="notification-badge">{{ $unreadNotifications }}</span>
-                                @endif
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end" style="width: 350px;">
-                                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                                    <h6 class="mb-0">Notifikasi</h6>
-                                    <span class="badge bg-primary">{{ $unreadNotifications }} Baru</span>
-                                </div>
-                                <div style="max-height: 400px; overflow-y: auto;">
-                                    @php
-                                        try {
-                                            $recentNotifications = Auth::user()->notifications()
-                                                ->latest()
-                                                ->limit(5)
-                                                ->get();
-                                        } catch (\Exception $e) {
-                                            $recentNotifications = collect([]);
-                                        }
-                                    @endphp
-                                    
-                                    @forelse($recentNotifications as $notification)
-                                        <div class="notification-item {{ !$notification->is_read ? 'unread' : '' }}">
-                                            <div class="d-flex gap-3">
-                                                <div class="notification-icon">
-                                                    <i class="bi bi-{{ $notification->type == 'success' ? 'check-circle' : ($notification->type == 'warning' ? 'exclamation-triangle' : ($notification->type == 'danger' ? 'x-circle' : 'info-circle')) }}"></i>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1">{{ $notification->title }}</h6>
-                                                    <p class="mb-1 small text-muted">{{ $notification->message }}</p>
-                                                    <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="text-center py-4">
-                                            <i class="bi bi-bell-slash fs-1 d-block mb-2 text-muted"></i>
-                                            <span class="text-muted">Tidak ada notifikasi</span>
-                                        </div>
-                                    @endforelse
-                                </div>
-                                <div class="text-center p-3 border-top">
-                                    <a href="#" class="text-decoration-none small">Lihat Semua</a>
-                                </div>
-                            </div>
+                        <div class="dropdown-menu dropdown-menu-end" style="width: 350px;">
+                        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                            <h6 class="mb-0">Notifikasi</h6>
+                            <span class="badge bg-primary">{{ $unreadNotifications }} Baru</span>
                         </div>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            @forelse($recentNotifications as $notification)
+                                <div class="notification-item {{ !$notification->is_read ? 'unread' : '' }}">
+                                    <div class="d-flex gap-3">
+                                        <div class="notification-icon">
+                                            <i class="bi bi-{{ $notification->type == 'success' ? 'check-circle' : ($notification->type == 'warning' ? 'exclamation-triangle' : ($notification->type == 'danger' ? 'x-circle' : 'info-circle')) }}"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ $notification->title }}</h6>
+                                            <p class="mb-1 small text-muted">{{ Str::limit($notification->message, 50) }}</p>
+                                            <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-center py-4">
+                                    <i class="bi bi-bell-slash fs-1 d-block mb-2 text-muted"></i>
+                                    <span class="text-muted">Tidak ada notifikasi</span>
+                                </div>
+                            @endforelse
+                        </div>
+                        <div class="text-center p-3 border-top">
+                            <a href="{{ route('notifications.index') }}" class="text-decoration-none small">Lihat Semua Notifikasi</a>
+                        </div>
+                    </div>
 
                         <!-- User Dropdown -->
                         <div class="dropdown">
