@@ -48,6 +48,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/photo', [App\Http\Controllers\ProfileController::class, 'updatePhoto'])->name('profile.photo');
+
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::post('/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('read');
+        Route::post('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+        Route::delete('/delete/all', [App\Http\Controllers\NotificationController::class, 'destroyAll'])->name('destroy-all');
+        Route::get('/unread/count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('unread-count');
+
+    });
+
 });
 
 // ==================== ADMIN ROUTES ====================
@@ -92,6 +103,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/reports/books', [App\Http\Controllers\Admin\ReportController::class, 'books'])->name('reports.books');
     Route::get('/reports/borrowings', [App\Http\Controllers\Admin\ReportController::class, 'borrowings'])->name('reports.borrowings');
     Route::get('/reports/procurements', [App\Http\Controllers\Admin\ReportController::class, 'procurements'])->name('reports.procurements');
+    Route::get('/reports/categories', [App\Http\Controllers\Admin\ReportController::class, 'categories'])->name('reports.categories');
+    Route::get('/reports/monthly', [App\Http\Controllers\Admin\ReportController::class, 'monthly'])->name('reports.monthly');
+    Route::get('/reports/users', [App\Http\Controllers\Admin\ReportController::class, 'users'])->name('reports.users');
 
     // User Management
     Route::prefix('users')->name('users.')->group(function () {
