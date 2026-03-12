@@ -15,7 +15,6 @@ class Notification extends Model
         'title',
         'message',
         'type',
-        'icon',
         'link',
         'data',
         'is_read',
@@ -30,13 +29,12 @@ class Notification extends Model
         'expired_at' => 'datetime'
     ];
 
-    // protected $dates = ['deleted_at'];
-
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    // Scopes
     public function scopeUnread($query)
     {
         return $query->where('is_read', false);
@@ -55,11 +53,7 @@ class Notification extends Model
         });
     }
 
-    public function scopeByType($query, $type)
-    {
-        return $query->where('type', $type);
-    }
-
+    // Methods
     public function markAsRead()
     {
         $this->is_read = true;
@@ -89,6 +83,7 @@ class Notification extends Model
         return $this->expired_at && $this->expired_at < now();
     }
 
+    // Static Methods
     public static function send($userId, $title, $message, $type = 'info', $link = null, $data = [])
     {
         return self::create([
@@ -96,7 +91,6 @@ class Notification extends Model
             'title' => $title,
             'message' => $message,
             'type' => $type,
-            'icon' => $data['icon'] ?? null,
             'link' => $link,
             'data' => $data,
             'expired_at' => $data['expired_at'] ?? null
@@ -112,15 +106,5 @@ class Notification extends Model
         foreach ($users as $user) {
             self::send($user->id, $title, $message, $type, $link, $data);
         }
-    }
-
-    public static function sendToAllAdmins($title, $message, $type = 'info', $link = null, $data = [])
-    {
-        return self::sendToRole('admin', $title, $message, $type, $link, $data);
-    }
-
-    public static function sendToAllKaprodi($title, $message, $type = 'info', $link = null, $data = [])
-    {
-        return self::sendToRole('kaprodi', $title, $message, $type, $link, $data);
     }
 }
