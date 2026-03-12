@@ -1,4 +1,3 @@
-{{-- resources/views/kaprodi/books/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Katalog Buku')
@@ -123,19 +122,64 @@
     </div>
 
     <!-- Pagination -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4">
-        <small class="text-muted mb-2 mb-md-0">
+    @if($books->hasPages())
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top">
+        <div class="text-muted small mb-2 mb-md-0">
             Menampilkan {{ $books->firstItem() ?? 0 }} - {{ $books->lastItem() ?? 0 }} 
             dari {{ $books->total() }} data
-        </small>
-        @if($books->hasPages())
+        </div>
         <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm mb-0">
-                {{ $books->withQueryString()->links() }}
+                @if($books->onFirstPage())
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">
+                            <i class="bi bi-chevron-left"></i>
+                        </span>
+                    </li>
+                @else
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $books->previousPageUrl() }}" aria-label="Previous">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                @endif
+
+                @foreach($books->getUrlRange(max(1, $books->currentPage() - 2), min($books->lastPage(), $books->currentPage() + 2)) as $page => $url)
+                    @if($page == $books->currentPage())
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">{{ $page }}</span>
+                        </li>
+                    @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                        </li>
+                    @endif
+                @endforeach
+
+                @if($books->hasMorePages())
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $books->nextPageUrl() }}" aria-label="Next">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                @else
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">
+                            <i class="bi bi-chevron-right"></i>
+                        </span>
+                    </li>
+                @endif
             </ul>
         </nav>
-        @endif
     </div>
+    @else
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+        <div class="text-muted small">
+            Menampilkan {{ $books->firstItem() ?? 0 }} - {{ $books->lastItem() ?? 0 }} 
+            dari {{ $books->total() }} data
+        </div>
+    </div>
+    @endif
 </div>
 
 <!-- Floating Cart -->
@@ -202,12 +246,17 @@
     border-top-right-radius: 12px;
 }
 
+.pagination {
+    gap: 2px;
+}
+
 .pagination .page-link {
     border: none;
     color: #6c757d;
     padding: 0.4rem 0.8rem;
-    margin: 0 2px;
     border-radius: 6px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
 }
 
 .pagination .page-item.active .page-link {
@@ -218,6 +267,11 @@
 .pagination .page-link:hover {
     background-color: #e9ecef;
     color: #0d6efd;
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: transparent;
+    color: #adb5bd;
 }
 
 .badge.bg-light {
@@ -237,9 +291,17 @@
     border-radius: 6px;
 }
 
+.border-top {
+    border-top: 1px solid rgba(0,0,0,0.05) !important;
+}
+
 @media (max-width: 768px) {
     .floating-cart {
         width: 240px;
+    }
+    
+    .pagination .page-link {
+        padding: 0.3rem 0.6rem;
     }
 }
 </style>
