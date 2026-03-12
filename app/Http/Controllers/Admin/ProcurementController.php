@@ -302,4 +302,37 @@ class ProcurementController extends Controller
         return redirect()->route('admin.procurements.show', $id)
             ->with('success', 'Pengadaan berhasil dibatalkan.');
     }
+
+    public function confirm($id)
+    {
+        $procurement = Procurement::findOrFail($id);
+
+        if ($procurement->status !== 'pending') {
+            return redirect()->route('admin.procurements.show', $id)
+                ->with('error', 'Pengadaan ini tidak dapat dikonfirmasi karena statusnya bukan pending.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update status menjadi ordered
+            $procurement->status = 'ordered';
+            $procurement->save();
+
+            // Update status semua item menjadi ordered
+            foreach ($procurement->items as $item) {
+                $item->status = 'ordered';
+                $item->save();
+            }
+
+            DB::commit();
+
+            return redirect()->route('admin.procurements.show', $id)
+                ->with('success', 'Pengadaan berhasil dikonfirmasi ke supplier. Status berubah menjadi Ordered.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
 }

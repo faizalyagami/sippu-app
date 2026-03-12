@@ -1,6 +1,7 @@
+{{-- resources/views/admin/suppliers/create.blade.php --}}
 @extends('layouts.app')
 
-@section('title', 'Edit Supplier')
+@section('title', 'Tambah Supplier')
 
 @section('content')
 <div class="container-fluid">
@@ -10,17 +11,16 @@
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
         <h4 class="mb-0">
-            <i class="bi bi-pencil-square text-warning me-2"></i>
-            Edit Supplier: {{ $supplier->name }}
+            <i class="bi bi-plus-circle text-primary me-2"></i>
+            Tambah Supplier Baru
         </h4>
     </div>
 
     <!-- Form Card -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <form action="{{ route('admin.suppliers.update', $supplier->id) }}" method="POST">
+            <form action="{{ route('admin.suppliers.store') }}" method="POST">
                 @csrf
-                @method('PUT')
 
                 <div class="row">
                     <!-- Informasi Perusahaan -->
@@ -38,7 +38,7 @@
                         <input type="text" 
                                name="name" 
                                class="form-control @error('name') is-invalid @enderror" 
-                               value="{{ old('name', $supplier->name) }}" 
+                               value="{{ old('name') }}" 
                                placeholder="Masukkan nama supplier"
                                required>
                         @error('name')
@@ -53,7 +53,7 @@
                         <input type="text" 
                                name="company_name" 
                                class="form-control @error('company_name') is-invalid @enderror" 
-                               value="{{ old('company_name', $supplier->company_name) }}" 
+                               value="{{ old('company_name') }}" 
                                placeholder="Masukkan nama perusahaan"
                                required>
                         @error('company_name')
@@ -68,7 +68,7 @@
                         <input type="email" 
                                name="email" 
                                class="form-control @error('email') is-invalid @enderror" 
-                               value="{{ old('email', $supplier->email) }}" 
+                               value="{{ old('email') }}" 
                                placeholder="supplier@example.com"
                                required>
                         @error('email')
@@ -83,7 +83,7 @@
                         <input type="text" 
                                name="phone_number" 
                                class="form-control @error('phone_number') is-invalid @enderror" 
-                               value="{{ old('phone_number', $supplier->phone_number) }}" 
+                               value="{{ old('phone_number') }}" 
                                placeholder="021-12345678"
                                required>
                         @error('phone_number')
@@ -96,7 +96,7 @@
                         <input type="text" 
                                name="npwp" 
                                class="form-control @error('npwp') is-invalid @enderror" 
-                               value="{{ old('npwp', $supplier->npwp) }}" 
+                               value="{{ old('npwp') }}" 
                                placeholder="00.000.000.0-000.000">
                         @error('npwp')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -111,7 +111,7 @@
                                   class="form-control @error('address') is-invalid @enderror" 
                                   rows="3" 
                                   placeholder="Jl. Contoh No. 123, Kota, Provinsi"
-                                  required>{{ old('address', $supplier->address) }}</textarea>
+                                  required>{{ old('address') }}</textarea>
                         @error('address')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -132,7 +132,7 @@
                         <input type="text" 
                                name="contact_person" 
                                class="form-control @error('contact_person') is-invalid @enderror" 
-                               value="{{ old('contact_person', $supplier->contact_person) }}" 
+                               value="{{ old('contact_person') }}" 
                                placeholder="Nama lengkap kontak person"
                                required>
                         @error('contact_person')
@@ -147,7 +147,7 @@
                         <input type="text" 
                                name="cp_phone" 
                                class="form-control @error('cp_phone') is-invalid @enderror" 
-                               value="{{ old('cp_phone', $supplier->cp_phone) }}" 
+                               value="{{ old('cp_phone') }}" 
                                placeholder="0812-3456-7890"
                                required>
                         @error('cp_phone')
@@ -160,7 +160,7 @@
                         <textarea name="description" 
                                   class="form-control @error('description') is-invalid @enderror" 
                                   rows="3" 
-                                  placeholder="Catatan tambahan tentang supplier (opsional)">{{ old('description', $supplier->description) }}</textarea>
+                                  placeholder="Catatan tambahan tentang supplier (opsional)">{{ old('description') }}</textarea>
                         @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -172,30 +172,10 @@
                                    name="is_active" 
                                    class="form-check-input" 
                                    id="isActive" 
-                                   {{ old('is_active', $supplier->is_active) ? 'checked' : '' }}>
+                                   {{ old('is_active', true) ? 'checked' : '' }}>
                             <label class="form-check-label" for="isActive">
                                 Aktif (supplier dapat melakukan transaksi)
                             </label>
-                        </div>
-                    </div>
-
-                    <!-- Informasi Sistem -->
-                    <div class="col-12 mt-3">
-                        <div class="bg-light p-3 rounded">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-calendar me-1"></i> 
-                                        Dibuat: {{ $supplier->created_at->format('d/m/Y H:i') }}
-                                    </small>
-                                </div>
-                                <div class="col-md-6">
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-pencil me-1"></i> 
-                                        Terakhir update: {{ $supplier->updated_at->format('d/m/Y H:i') }}
-                                    </small>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -206,8 +186,8 @@
                     <a href="{{ route('admin.suppliers.index') }}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i> Batal
                     </a>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-save me-1"></i> Update Supplier
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Simpan Supplier
                     </button>
                 </div>
             </form>
@@ -233,10 +213,6 @@
 
 .border-bottom {
     border-bottom: 2px solid #dee2e6 !important;
-}
-
-.bg-light {
-    background-color: #f8f9fa !important;
 }
 </style>
 @endsection

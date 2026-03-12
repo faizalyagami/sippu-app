@@ -70,16 +70,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     // Suppliers
     Route::resource('suppliers', App\Http\Controllers\Admin\SupplierController::class);
+    Route::post('/suppliers/{id}/toggle-status', [App\Http\Controllers\Admin\SupplierController::class, 'toggleStatus'])->name('suppliers.toggle-status');
     
     // Procurements
     Route::resource('procurements', App\Http\Controllers\Admin\ProcurementController::class);
     Route::get('/procurements/{procurement}/receive', [App\Http\Controllers\Admin\ProcurementController::class, 'receive'])->name('procurements.receive');
     Route::post('/procurements/{procurement}/receive', [App\Http\Controllers\Admin\ProcurementController::class, 'processReceive'])->name('procurements.process-receive');
+    Route::post('/procurements/{procurement}/cancel', [App\Http\Controllers\Admin\ProcurementController::class, 'cancel'])->name('procurements.cancel');
+    Route::get('/procurements/{procurement}/print', [App\Http\Controllers\Admin\ProcurementController::class, 'print'])->name('procurements.print');
+    Route::post('/procurements/{procurement}/confirm', [App\Http\Controllers\Admin\ProcurementController::class, 'confirm'])->name('procurements.confirm');
     
     // Borrowings
     Route::resource('borrowings', App\Http\Controllers\Admin\BorrowingController::class);
     Route::post('/borrowings/{borrowing}/approve', [App\Http\Controllers\Admin\BorrowingController::class, 'approve'])->name('borrowings.approve');
     Route::post('/borrowings/{borrowing}/reject', [App\Http\Controllers\Admin\BorrowingController::class, 'reject'])->name('borrowings.reject');
+    Route::post('/borrowings/{borrowing}/mark-borrowed', [App\Http\Controllers\Admin\BorrowingController::class, 'markAsBorrowed'])->name('borrowings.mark-borrowed');
     Route::post('/borrowings/{borrowing}/return', [App\Http\Controllers\Admin\BorrowingController::class, 'processReturn'])->name('borrowings.return');
     
     // Reports
@@ -87,11 +92,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/reports/books', [App\Http\Controllers\Admin\ReportController::class, 'books'])->name('reports.books');
     Route::get('/reports/borrowings', [App\Http\Controllers\Admin\ReportController::class, 'borrowings'])->name('reports.borrowings');
     Route::get('/reports/procurements', [App\Http\Controllers\Admin\ReportController::class, 'procurements'])->name('reports.procurements');
-    
-    // ==================== USER MANAGEMENT ROUTES (DIPINDAHKAN KE DALAM GROUP ADMIN) ====================
+
+    // User Management
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');
-        Route::get('/users/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('users.create');
         Route::get('/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('store');
         Route::get('/{id}/edit', [App\Http\Controllers\Admin\UserController::class, 'edit'])->name('edit');
@@ -120,18 +124,26 @@ Route::prefix('kaprodi')->name('kaprodi.')->middleware(['auth', 'role:kaprodi'])
     Route::post('/profile/photo', [App\Http\Controllers\ProfileController::class, 'updatePhoto'])->name('profile.photo');
     
     // Books
-    Route::get('/books', [App\Http\Controllers\Kaprodi\BookController::class, 'index'])->name('books.index');
-    Route::get('/books/{id}', [App\Http\Controllers\Kaprodi\BookController::class, 'show'])->name('books.show');
+    Route::prefix('books')->name('books.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Kaprodi\BookController::class, 'index'])->name('index');
+        Route::get('/{id}', [App\Http\Controllers\Kaprodi\BookController::class, 'show'])->name('show');
+        Route::get('/search/ajax', [App\Http\Controllers\Kaprodi\BookController::class, 'search'])->name('search');
+    });
     
-    // Borrowings
-    Route::get('/borrowings/checkout', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'checkout'])->name('borrowings.checkout');
-    Route::post('/borrowings/checkout', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'processCheckout'])->name('borrowings.process-checkout');
-    Route::get('/borrowings', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'index'])->name('borrowings.index');
-    Route::get('/borrowings/{id}', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'show'])->name('borrowings.show');
-    Route::post('/borrowings/{id}/cancel', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'cancel'])->name('borrowings.cancel');
+    // Borrowings (Peminjaman)
+    Route::prefix('borrowings')->name('borrowings.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'index'])->name('index');
+        Route::get('/checkout', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'checkout'])->name('checkout');
+        Route::post('/checkout', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'processCheckout'])->name('process-checkout');
+        Route::get('/{id}', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'show'])->name('show');
+        Route::post('/{id}/cancel', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'cancel'])->name('cancel');
+        Route::post('/cart-data', [App\Http\Controllers\Kaprodi\BorrowingController::class, 'getCartData'])->name('cart-data');
+    });
     
-    // Requests
+    // Requests (Request Buku)
     Route::resource('requests', App\Http\Controllers\Kaprodi\RequestController::class);
+    Route::post('/requests/{id}/cancel', [App\Http\Controllers\Kaprodi\RequestController::class, 'cancel'])->name('requests.cancel');
+    Route::get('/requests/check-duplicate', [App\Http\Controllers\Kaprodi\RequestController::class, 'checkDuplicate'])->name('requests.check-duplicate');
 });
 
 // ==================== SUPPLIER ROUTES ====================
@@ -149,12 +161,19 @@ Route::prefix('supplier')->name('supplier.')->middleware(['auth', 'role:supplier
     Route::get('/procurements/{id}', [App\Http\Controllers\Supplier\ProcurementController::class, 'show'])->name('procurements.show');
     Route::post('/procurements/{id}/confirm', [App\Http\Controllers\Supplier\ProcurementController::class, 'confirm'])->name('procurements.confirm');
     Route::post('/procurements/{id}/ship', [App\Http\Controllers\Supplier\ProcurementController::class, 'ship'])->name('procurements.ship');
+    Route::get('/procurements/{id}/shipping-form', [App\Http\Controllers\Supplier\ProcurementController::class, 'getShippingForm'])->name('shipping-form');
     
     // Books
     Route::get('/books', [App\Http\Controllers\Supplier\BookController::class, 'index'])->name('books.index');
     Route::get('/books/{id}', [App\Http\Controllers\Supplier\BookController::class, 'show'])->name('books.show');
+    Route::get('/catalog/supplied', [App\Http\Controllers\Supplier\BookController::class, 'catalog'])->name('catalog');
     
     // Invoices
-    Route::get('/invoices', [App\Http\Controllers\Supplier\InvoiceController::class, 'index'])->name('invoices.index');
-    Route::get('/invoices/{id}', [App\Http\Controllers\Supplier\InvoiceController::class, 'show'])->name('invoices.show');
+    Route::prefix('invoices')->name('invoices.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Supplier\InvoiceController::class, 'index'])->name('index');
+        Route::get('/{id}', [App\Http\Controllers\Supplier\InvoiceController::class, 'show'])->name('show');
+        Route::get('/{id}/download', [App\Http\Controllers\Supplier\InvoiceController::class, 'download'])->name('download');
+        Route::get('/{id}/print', [App\Http\Controllers\Supplier\InvoiceController::class, 'print'])->name('print');
+        Route::get('/summary/yearly', [App\Http\Controllers\Supplier\InvoiceController::class, 'summary'])->name('summary');
+    });
 });

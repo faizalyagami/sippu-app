@@ -48,7 +48,7 @@ class SupplierController extends Controller
 
     public function create()
     {
-        return view('admin.suppliers.form');
+        return view('admin.suppliers.create');
     }
 
     public function store(Request $request)
@@ -131,7 +131,7 @@ class SupplierController extends Controller
     public function edit($id)
     {
         $supplier = Supplier::findOrFail($id);
-        return view('admin.suppliers.form', compact('supplier'));
+        return view('admin.suppliers.edit', compact('supplier'));
     }
 
     public function update(Request $request, $id)

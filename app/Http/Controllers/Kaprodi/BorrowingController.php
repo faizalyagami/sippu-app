@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Kaprodi/BorrowingController.php
 
 namespace App\Http\Controllers\Kaprodi;
 
@@ -9,6 +10,7 @@ use App\Models\Book;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class BorrowingController extends Controller
 {
@@ -25,12 +27,10 @@ class BorrowingController extends Controller
         $query = Borrowing::with(['items.book', 'approvedBy'])
             ->where('user_id', $user->id);
 
-        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by date range
         if ($request->filled('start_date')) {
             $query->whereDate('borrowing_date', '>=', $request->start_date);
         }
@@ -38,33 +38,41 @@ class BorrowingController extends Controller
             $query->whereDate('borrowing_date', '<=', $request->end_date);
         }
 
-        $borrowings = $query->orderBy('created_at', 'desc')->paginate(15);
+        if ($request->filled('search')) {
+            $query->where('borrowing_number', 'like', "%{$request->search}%");
+        }
 
-        // Statistik
-        $statistics = [
-            'total' => Borrowing::where('user_id', $user->id)->count(),
-            'pending' => Borrowing::where('user_id', $user->id)->where('status', 'pending')->count(),
-            'active' => Borrowing::where('user_id', $user->id)->whereIn('status', ['approved', 'borrowed'])->count(),
-            'returned' => Borrowing::where('user_id', $user->id)->where('status', 'returned')->count(),
-            'overdue' => Borrowing::where('user_id', $user->id)
-                ->where('status', 'borrowed')
-                ->where('expected_return_date', '<', now())
-                ->count()
-        ];
+        $borrowings = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return view('kaprodi.borrowings.index', compact('borrowings', 'statistics'));
+        $totalBorrowings = Borrowing::where('user_id', $user->id)->count();
+        $activeBorrowings = Borrowing::where('user_id', $user->id)
+            ->whereIn('status', ['approved', 'borrowed'])
+            ->count();
+        $pendingBorrowings = Borrowing::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+        $overdueBorrowings = Borrowing::where('user_id', $user->id)
+            ->where('status', 'borrowed')
+            ->where('expected_return_date', '<', now())
+            ->count();
+
+        return view('kaprodi.borrowings.index', compact(
+            'borrowings',
+            'totalBorrowings',
+            'activeBorrowings',
+            'pendingBorrowings',
+            'overdueBorrowings'
+        ));
     }
 
     public function checkout()
     {
-        // Get available books for borrowing
         $books = Book::with('category')
             ->where('is_active', true)
             ->where('available_stock', '>', 0)
             ->orderBy('title')
             ->paginate(12);
 
-        // Get categories for filter
         $categories = \App\Models\Category::where('is_active', true)->get();
 
         return view('kaprodi.borrowings.checkout', compact('books', 'categories'));
@@ -72,6 +80,8 @@ class BorrowingController extends Controller
 
     public function processCheckout(Request $request)
     {
+        Log::info('Checkout request data:', $request->all());
+
         $validator = Validator::make($request->all(), [
             'books' => 'required|array|min:1',
             'books.*.id' => 'required|exists:books,id',
@@ -81,12 +91,12 @@ class BorrowingController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::error('Validation failed:', $validator->errors()->toArray());
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
 
-        // Validate stock availability
         foreach ($request->books as $item) {
             $book = Book::find($item['id']);
             if ($book->available_stock < $item['quantity']) {
@@ -98,7 +108,6 @@ class BorrowingController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create borrowing
             $borrowing = Borrowing::create([
                 'user_id' => auth()->id(),
                 'borrowing_date' => now(),
@@ -108,7 +117,6 @@ class BorrowingController extends Controller
                 'total_items' => collect($request->books)->sum('quantity')
             ]);
 
-            // Create borrowing items
             foreach ($request->books as $item) {
                 BorrowingItem::create([
                     'borrowing_id' => $borrowing->id,
@@ -121,10 +129,12 @@ class BorrowingController extends Controller
             DB::commit();
 
             return redirect()->route('kaprodi.borrowings.show', $borrowing->id)
-                ->with('success', 'Permintaan peminjaman berhasil diajukan dan menunggu persetujuan admin.');
+                ->with('success', 'Permintaan peminjaman berhasil diajukan dan menunggu persetujuan admin.')
+                ->with('clear_cart', true);
 
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Checkout error: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
                 ->withInput();
@@ -149,15 +159,24 @@ class BorrowingController extends Controller
         $borrowing->status = 'cancelled';
         $borrowing->save();
 
-        return redirect()->route('kaprodi.borrowings.index')
-            ->with('success', 'Peminjaman berhasil dibatalkan.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Peminjaman berhasil dibatalkan.'
+        ]);
     }
 
     public function getCartData(Request $request)
     {
-        $bookIds = $request->get('book_ids', []);
-        
-        $books = Book::whereIn('id', $bookIds)
+        $validator = Validator::make($request->all(), [
+            'book_ids' => 'required|array',
+            'book_ids.*' => 'exists:books,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        $books = Book::whereIn('id', $request->book_ids)
             ->get(['id', 'title', 'author', 'available_stock']);
 
         return response()->json($books);

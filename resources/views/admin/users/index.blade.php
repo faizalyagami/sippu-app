@@ -64,7 +64,7 @@
                         <th>User</th>
                         <th>Role</th>
                         <th>Kontak</th>
-                        <th>NIP/NIM</th>
+                        <th>NIP</th>
                         <th>Status</th>
                         <th>Terdaftar</th>
                         <th>Aksi</th>
@@ -186,16 +186,117 @@
             </table>
         </div>
 
-        <!-- Pagination -->
+        <!-- PERBAIKAN PAGINATION -->
+        @if($users->hasPages())
         <div class="d-flex justify-content-between align-items-center p-3 border-top">
-            <small class="text-muted">
+            <div class="text-muted small">
                 Menampilkan {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
                 dari {{ $users->total() }} data
-            </small>
-            {{ $users->withQueryString()->links() }}
+            </div>
+            
+            <!-- Custom Pagination -->
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    {{-- Previous Page Link --}}
+                    @if($users->onFirstPage())
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">&laquo;</span>
+                        </li>
+                    @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $users->previousPageUrl() }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Pagination Elements --}}
+                    @foreach($users->getUrlRange(max(1, $users->currentPage() - 2), min($users->lastPage(), $users->currentPage() + 2)) as $page => $url)
+                        @if($page == $users->currentPage())
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ $page }}</span>
+                            </li>
+                        @else
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                            </li>
+                        @endif
+                    @endforeach
+
+                    {{-- Next Page Link --}}
+                    @if($users->hasMorePages())
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $users->nextPageUrl() }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    @else
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">&raquo;</span>
+                        </li>
+                    @endif
+                </ul>
+            </nav>
         </div>
+        @else
+        <!-- Jika hanya 1 halaman, tampilkan info saja -->
+        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+            <div class="text-muted small">
+                Menampilkan {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
+                dari {{ $users->total() }} data
+            </div>
+        </div>
+        @endif
     </div>
 </div>
+
+<style>
+/* Custom Pagination Styling */
+.pagination {
+    gap: 5px;
+}
+
+.pagination .page-item .page-link {
+    border-radius: 8px;
+    border: none;
+    padding: 0.5rem 0.9rem;
+    color: #495057;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+    background: #f8f9fa;
+    color: #667eea;
+    transform: translateY(-2px);
+}
+
+.pagination .page-item.disabled .page-link {
+    background: #f8f9fa;
+    color: #adb5bd;
+    border: none;
+}
+
+/* Info text styling */
+.text-muted.small {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pagination .page-link {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.875rem;
+    }
+}
+</style>
 
 <script>
 function toggleStatus(userId) {
@@ -203,12 +304,40 @@ function toggleStatus(userId) {
         fetch(`/admin/users/${userId}/toggle-status`, {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
             }
-        }).then(() => {
-            window.location.reload();
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Terjadi kesalahan');
+            }
+        })
+        .catch(error => {
+            alert('Terjadi kesalahan jaringan');
         });
     }
 }
+
+// Auto submit filter
+document.querySelector('select[name="role"]').addEventListener('change', function() {
+    this.form.submit();
+});
+
+document.querySelector('select[name="status"]').addEventListener('change', function() {
+    this.form.submit();
+});
+
+// Search with debounce
+let searchTimeout;
+document.querySelector('input[name="search"]').addEventListener('keyup', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        this.form.submit();
+    }, 500);
+});
 </script>
 @endsection
