@@ -63,7 +63,7 @@
                     <p class="card-text text-muted">
                         Lihat laporan data user dan aktivitas
                     </p>
-                    <a href="{{ route('admin.reports.index') }}" class="btn btn-info">
+                    <a href="{{ route('admin.reports.users') }}" class="btn btn-info">
                         <i class="bi bi-eye"></i> Lihat Laporan
                     </a>
                 </div>
@@ -78,7 +78,7 @@
                     <p class="card-text text-muted">
                         Lihat laporan berdasarkan kategori buku
                     </p>
-                    <a href="#" class="btn btn-secondary">
+                    <a href="{{ route('admin.reports.categories') }}" class="btn btn-secondary">
                         <i class="bi bi-eye"></i> Lihat Laporan
                     </a>
                 </div>
@@ -93,7 +93,7 @@
                     <p class="card-text text-muted">
                         Lihat laporan rekap bulanan
                     </p>
-                    <a href="#" class="btn btn-danger">
+                    <a href="{{ route('admin.reports.monthly') }}" class="btn btn-danger">
                         <i class="bi bi-eye"></i> Lihat Laporan
                     </a>
                 </div>

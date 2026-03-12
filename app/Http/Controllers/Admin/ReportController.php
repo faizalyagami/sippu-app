@@ -9,7 +9,9 @@ use App\Models\Borrowing;
 use App\Models\Procurement;
 use App\Models\User;
 use App\Models\Category;
+use App\Models\Role;
 use App\Models\Supplier;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -266,48 +268,104 @@ class ReportController extends Controller
     }
 
     public function users(Request $request)
+{
+    $query = User::with('role');
+
+    if ($request->filled('role_id')) {
+        $query->where('role_id', $request->role_id);
+    }
+
+    if ($request->filled('is_active')) {
+        $query->where('is_active', $request->is_active === 'active');
+    }
+
+    $users = $query->orderBy('created_at', 'desc')->paginate(15);
+
+    $statistics = [
+        'total' => User::count(),
+        'active' => User::where('is_active', true)->count(),
+        'inactive' => User::where('is_active', false)->count(),
+        'kaprodi' => User::whereHas('role', fn($q) => $q->where('name', 'kaprodi'))->count(),
+    ];
+
+    $roleStats = collect([
+        ['role' => 'Admin', 'total' => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count()],
+        ['role' => 'Kaprodi', 'total' => User::whereHas('role', fn($q) => $q->where('name', 'kaprodi'))->count()],
+        ['role' => 'Supplier', 'total' => User::whereHas('role', fn($q) => $q->where('name', 'supplier'))->count()],
+    ]);
+
+    $facultyStats = User::whereNotNull('faculty')
+        ->select('faculty', DB::raw('count(*) as total'))
+        ->groupBy('faculty')
+        ->orderByDesc('total')
+        ->limit(10)
+        ->get();
+
+    $roles = Role::all();
+
+    return view('admin.reports.users', compact('users', 'statistics', 'roleStats', 'facultyStats', 'roles'));
+    }
+
+    public function categories(Request $request)
     {
-        $query = User::with('role');
+        $categories = Category::withCount('books')->with('parent')->paginate(15);
 
-        // Filter by role
-        if ($request->filled('role_id')) {
-            $query->where('role_id', $request->role_id);
-        }
-
-        // Filter by status
-        if ($request->filled('is_active')) {
-            $query->where('is_active', $request->is_active == 'active');
-        }
-
-        $users = $query->orderBy('name')->get();
-
-        // Statistics
         $statistics = [
-            'total' => $users->count(),
-            'active' => $users->where('is_active', true)->count(),
-            'inactive' => $users->where('is_active', false)->count(),
-            'admins' => $users->where('role_id', 1)->count(),
-            'kaprodi' => $users->where('role_id', 2)->count(),
-            'suppliers' => $users->where('role_id', 3)->count()
+            'total' => Category::count(),
+            'active' => Category::where('is_active', true)->count(),
+            'total_books' => Book::count(),
         ];
 
-        // User borrowing stats
-        $userBorrowingStats = User::where('role_id', 2)
-            ->withCount(['borrowings', 'borrowings as active_borrowings_count' => function($q) {
-                $q->whereIn('status', ['approved', 'borrowed']);
-            }])
-            ->having('borrowings_count', '>', 0)
-            ->orderByDesc('borrowings_count')
-            ->limit(10)
+        $categoryStats = Category::withCount('books')
+            ->having('books_count', '>', 0)
+            ->orderByDesc('books_count')
             ->get();
 
-        if ($request->has('export')) {
-            return $this->exportUsers($users);
+        return view('admin.reports.categories', compact('categories', 'statistics', 'categoryStats'));
+    }
+
+    public function monthly(Request $request)
+    {
+        $month = $request->get('month', date('m'));
+        $year = $request->get('year', date('Y'));
+
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+        $monthlyStats = [
+            'books_added' => Book::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'total_borrowings' => Borrowing::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'total_returns' => Borrowing::whereBetween('actual_return_date', [$startDate, $endDate])->count(),
+            'total_procurements' => Procurement::whereBetween('created_at', [$startDate, $endDate])->count(),
+        ];
+
+        $recentBorrowings = Borrowing::with('user')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        $recentProcurements = Procurement::with('vendor')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        $weeklyStats = collect();
+        for ($week = 1; $week <= 5; $week++) {
+            $weekStart = $startDate->copy()->addWeeks($week - 1);
+            $weekEnd = $weekStart->copy()->endOfWeek();
+
+            $weeklyStats->push([
+                'week' => $week,
+                'borrowings' => Borrowing::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+                'returns' => Borrowing::whereBetween('actual_return_date', [$weekStart, $weekEnd])->count(),
+                'procurements' => Procurement::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+                'books_added' => Book::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+            ]);
         }
 
-        $roles = DB::table('roles')->get();
-
-        return view('admin.reports.users', compact('users', 'statistics', 'userBorrowingStats', 'roles'));
+        return view('admin.reports.monthly', compact('monthlyStats', 'recentBorrowings', 'recentProcurements', 'weeklyStats'));
     }
 
     private function exportBooks($books)
