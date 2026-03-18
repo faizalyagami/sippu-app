@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             // AdminUserSeeder::class,  // Admin user
             UserSeeder::class,
             BookSeeder::class,
+            BorrowingSeeder::class,
+            NotificationSeeder::class
         ]);
     }
 }

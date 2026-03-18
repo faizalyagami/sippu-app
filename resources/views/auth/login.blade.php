@@ -463,7 +463,7 @@
                 <div class="brand-icon">
                     <i class="bi bi-book-half"></i>
                 </div>
-                <h2>SIPPU</h2>
+                <h2>SIPPUS</h2>
                 <p>Sistem Informasi Perpustakaan UNISBA</p>
             </div>
 

@@ -316,25 +316,25 @@
                         <div class="col-md-3 col-6">
                             <div class="text-center p-3 bg-light rounded-3">
                                 <h3 class="mb-1 text-primary fw-bold">{{ $totalBorrowings ?? 0 }}</h3>
-                                <small class="text-muted">Total Pinjam</small>
+                                <small class="text-muted">Total Request</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6">
                             <div class="text-center p-3 bg-light rounded-3">
                                 <h3 class="mb-1 text-success fw-bold">{{ $activeBorrowings ?? 0 }}</h3>
-                                <small class="text-muted">Sedang Dipinjam</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <h3 class="mb-1 text-warning fw-bold">{{ $pendingBorrowings ?? 0 }}</h3>
                                 <small class="text-muted">Menunggu</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6">
                             <div class="text-center p-3 bg-light rounded-3">
+                                <h3 class="mb-1 text-warning fw-bold">{{ $pendingBorrowings ?? 0 }}</h3>
+                                <small class="text-muted">Disetujui</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-center p-3 bg-light rounded-3">
                                 <h3 class="mb-1 text-info fw-bold">{{ $returnedBorrowings ?? 0 }}</h3>
-                                <small class="text-muted">Dikembalikan</small>
+                                <small class="text-muted">Permintaan Tidak Tersedia</small>
                             </div>
                         </div>
                     </div>

@@ -9,7 +9,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 fw-semibold">
             <i class="bi bi-clock-history text-primary me-2"></i>
-            Riwayat Peminjaman
+            Riwayat Permintaan Koleksi
         </h4>
         <a href="{{ route('kaprodi.borrowings.checkout') }}" class="btn btn-primary">
             <i class="bi bi-cart-plus me-1"></i> Pinjam Buku Baru
@@ -17,7 +17,7 @@
     </div>
 
     <!-- Statistik Cards -->
-    <div class="row g-4 mb-4">
+    <!-- <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -26,7 +26,7 @@
                             <i class="bi bi-book fs-4 text-primary"></i>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Peminjaman</h6>
+                            <h6 class="text-muted mb-1">Total Permintaan</h6>
                             <h3 class="mb-0 fw-bold">{{ $totalBorrowings }}</h3>
                         </div>
                     </div>
@@ -78,7 +78,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Filter Card -->
     <div class="card border-0 shadow-sm mb-4">

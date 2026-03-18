@@ -19,30 +19,30 @@
     <li class="nav-item">
         <a class="nav-link {{ request()->routeIs('kaprodi.books.*') ? 'active' : '' }}" 
            href="{{ route('kaprodi.books.index') }}">
-            <i class="bi bi-book me-2"></i> Katalog Buku
+            <i class="bi bi-book me-2"></i> Permintaan Buku
         </a>
     </li>
     
-    <li class="nav-item">
+    <!-- <li class="nav-item">
         <a class="nav-link {{ request()->routeIs('kaprodi.borrowings.checkout') ? 'active' : '' }}" 
            href="{{ route('kaprodi.borrowings.checkout') }}">
             <i class="bi bi-cart-check me-2"></i> Pinjam Buku
         </a>
-    </li>
+    </li> -->
     
     <li class="nav-item">
         <a class="nav-link {{ request()->routeIs('kaprodi.borrowings.index') ? 'active' : '' }}" 
            href="{{ route('kaprodi.borrowings.index') }}">
-            <i class="bi bi-list-check me-2"></i> Riwayat Peminjaman
+            <i class="bi bi-list-check me-2"></i> Status Permintaan
         </a>
     </li>
     
-    <li class="nav-item">
+    <!-- <li class="nav-item">
         <a class="nav-link {{ request()->routeIs('kaprodi.requests.*') ? 'active' : '' }}" 
            href="{{ route('kaprodi.requests.index') }}">
             <i class="bi bi-envelope me-2"></i> Request Buku
         </a>
-    </li>
+    </li> -->
 
     <li class="nav-item">
         <a class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }} d-flex justify-content-between align-items-center" 

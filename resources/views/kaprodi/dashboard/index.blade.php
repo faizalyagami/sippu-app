@@ -37,7 +37,7 @@
     </div>
 
     <!-- Statistik Cards -->
-    <div class="row g-4 mb-4">
+    <!-- <div class="row g-4 mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -98,10 +98,10 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Quick Actions -->
-    <div class="row g-3 mb-4">
+    <!-- <div class="row g-3 mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -126,7 +126,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Peminjaman Aktif -->
     <div class="row mb-4">

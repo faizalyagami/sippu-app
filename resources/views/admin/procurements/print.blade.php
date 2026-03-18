@@ -104,8 +104,8 @@
 <body>
     <div class="header">
         <h1>PURCHASE ORDER</h1>
-        <h3>SIPPU - Sistem Informasi Perpustakaan UNISBA</h3>
-        <p>Jl. Tamansari No. 20, Bandung 40116</p>
+        <h3>SIPPUS - Sistem Informasi Perpustakaan UNISBA</h3>
+        <p>Jl. Tamansari No. 01, Bandung 40116</p>
         <h2>{{ $procurement->procurement_number }}</h2>
     </div>
 

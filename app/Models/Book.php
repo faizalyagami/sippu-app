@@ -1,10 +1,12 @@
 <?php
+// app/Models/Book.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Book extends Model
 {
@@ -15,7 +17,7 @@ class Book extends Model
         'isbn',
         'author',
         'publisher',
-        'publication_year',
+        'publisher_year',
         'category_id',
         'description',
         'language',
@@ -32,7 +34,7 @@ class Book extends Model
     ];
 
     protected $casts = [
-        'publication_year' => 'integer',
+        'publisher_year' => 'integer',
         'total_stock' => 'integer',
         'available_stock' => 'integer',
         'borrowed_stock' => 'integer',
@@ -40,9 +42,73 @@ class Book extends Model
         'lost_stock' => 'integer',
         'price' => 'decimal:2',
         'is_active' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime'
     ];
+
+    /**
+     * Scope untuk mengambil buku yang aktif
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope untuk mengambil buku yang tersedia
+     */
+    public function scopeAvailable($query)
+    {
+        return $query->where('available_stock', '>', 0);
+    }
+
+    /**
+     * Scope untuk mencari buku
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('title', 'like', "%{$search}%")
+              ->orWhere('author', 'like', "%{$search}%")
+              ->orWhere('isbn', 'like', "%{$search}%")
+              ->orWhere('publisher', 'like', "%{$search}%");
+        });
+    }
+
+    /**
+     * Accessor untuk URL cover image
+     */
+    public function getCoverUrlAttribute()
+    {
+        if ($this->cover_image && Storage::disk('public')->exists($this->cover_image)) {
+            return asset('storage/' . $this->cover_image);
+        }
+        
+        return asset('images/default-book-cover.jpg');
+    }
+
+    /**
+     * Accessor untuk status stok
+     */
+    public function getStockStatusAttribute()
+    {
+        if ($this->available_stock > 10) {
+            return 'Tersedia Banyak';
+        } elseif ($this->available_stock > 0) {
+            return 'Tersedia ' . $this->available_stock . ' Eksemplar';
+        } else {
+            return 'Stok Habis';
+        }
+    }
+
+    public function getStockStatusColorAttribute()
+    {
+        if ($this->available_stock > 10) {
+            return 'success';
+        } elseif ($this->available_stock > 0) {
+            return 'warning';
+        } else {
+            return 'danger';
+        }
+    }
 
     // Relationships
     public function category()
@@ -78,62 +144,6 @@ class Book extends Model
     public function reservations()
     {
         return $this->hasMany(BookReservation::class);
-    }
-
-    // Scopes
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeAvailable($query)
-    {
-        return $query->where('available_stock', '>', 0);
-    }
-
-    public function scopeByCategory($query, $categoryId)
-    {
-        return $query->where('category_id', $categoryId);
-    }
-
-    public function scopeSearch($query, $search)
-    {
-        return $query->where(function($q) use ($search) {
-            $q->where('title', 'like', "%{$search}%")
-              ->orWhere('author', 'like', "%{$search}%")
-              ->orWhere('isbn', 'like', "%{$search}%")
-              ->orWhere('publisher', 'like', "%{$search}%");
-        });
-    }
-
-    // Accessors
-    public function getCoverUrlAttribute()
-    {
-        return $this->cover_image 
-            ? asset('storage/' . $this->cover_image) 
-            : asset('images/default-book-cover.jpg');
-    }
-
-    public function getStockStatusAttribute()
-    {
-        if ($this->available_stock > 10) {
-            return 'Tersedia Banyak';
-        } elseif ($this->available_stock > 0) {
-            return 'Tersedia ' . $this->available_stock . ' Eksemplar';
-        } else {
-            return 'Stok Habis';
-        }
-    }
-
-    public function getStockStatusColorAttribute()
-    {
-        if ($this->available_stock > 10) {
-            return 'success';
-        } elseif ($this->available_stock > 0) {
-            return 'warning';
-        } else {
-            return 'danger';
-        }
     }
 
     // Methods

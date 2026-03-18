@@ -179,4 +179,16 @@ class BookCondition extends Model
             'changed_by' => auth()->id()
         ]);
     }
+    
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($bookCondition) {
+            if (empty($bookCondition->condition_code)) {
+                $bookCondition->condition_code = 'BC-' . $bookCondition->book_id . '-' . 
+                    str_pad(BookCondition::where('book_id', $bookCondition->book_id)->count() + 1, 3, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 }

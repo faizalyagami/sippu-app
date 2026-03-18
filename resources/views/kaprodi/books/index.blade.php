@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Katalog Buku')
+@section('title', 'Permintaan Buku')
 
 @section('content')
 <div class="container-fluid">
@@ -10,6 +10,9 @@
             <i class="bi bi-book text-primary me-2"></i>
             Katalog Buku
         </h4>
+        <a href="{{ route('kaprodi.requests.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Request Buku Baru
+        </a>
     </div>
 
     <!-- Search and Filter Card -->

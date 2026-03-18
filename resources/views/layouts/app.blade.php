@@ -374,7 +374,7 @@
             <div class="sidebar-header">
                 <h5 class="mb-0">
                     <i class="bi bi-book-half me-2"></i>
-                    SIPPU
+                    SIPPUS
                 </h5>
                 <small class="text-white-50">Universitas Islam Bandung</small>
             </div>

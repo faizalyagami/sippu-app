@@ -17,7 +17,6 @@ class BookController extends Controller
     {
         $query = Book::with('category');
 
-        // Search
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('title', 'like', "%{$request->search}%")
@@ -26,12 +25,10 @@ class BookController extends Controller
             });
         }
 
-        // Filter by category
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        // Filter by availability
         if ($request->filled('availability')) {
             if ($request->availability == 'available') {
                 $query->where('available_stock', '>', 0);
@@ -59,7 +56,7 @@ class BookController extends Controller
             'isbn' => 'nullable|string|unique:books',
             'author' => 'required|string|max:255',
             'publisher' => 'required|string|max:255',
-            'publication_year' => 'required|integer|min:1900|max:' . date('Y'),
+            'publisher_year' => 'required|integer|min:1900|max:' . date('Y'),
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'pages' => 'nullable|integer|min:1',
@@ -67,6 +64,7 @@ class BookController extends Controller
             'location_rack' => 'nullable|string|max:50',
             'total_stock' => 'required|integer|min:0',
             'price' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -77,17 +75,19 @@ class BookController extends Controller
         try {
             $data = $request->except('cover_image');
             $data['available_stock'] = $request->total_stock;
+            $data['is_active'] = $request->has('is_active') ? true : false;
             
             if ($request->hasFile('cover_image')) {
-                $data['cover_image'] = $request->file('cover_image')->store('books', 'public');
+                $path = $request->file('cover_image')->store('books/covers', 'public');
+                $data['cover_image'] = $path;
             }
 
             $book = Book::create($data);
 
-            // Buat book conditions untuk setiap copy
             for ($i = 1; $i <= $book->total_stock; $i++) {
                 BookCondition::create([
                     'book_id' => $book->id,
+                    'condition_code' => 'BC-' . $book->id . '-' . str_pad($i, 3, '0', STR_PAD_LEFT),
                     'book_code' => $book->id . '-' . str_pad($i, 3, '0', STR_PAD_LEFT),
                     'condition' => 'good',
                     'last_check_date' => now(),
@@ -98,9 +98,10 @@ class BookController extends Controller
 
             DB::commit();
             return redirect()->route('admin.books.index')->with('success', 'Buku berhasil ditambahkan');
+            
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -120,7 +121,7 @@ class BookController extends Controller
             'isbn' => 'nullable|string|unique:books,isbn,' . $id,
             'author' => 'required|string|max:255',
             'publisher' => 'required|string|max:255',
-            'publication_year' => 'required|integer|min:1900|max:' . date('Y'),
+            'publisher_year' => 'required|integer|min:1900|max:' . date('Y'),
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'pages' => 'nullable|integer|min:1',
@@ -128,6 +129,7 @@ class BookController extends Controller
             'location_rack' => 'nullable|string|max:50',
             'total_stock' => 'required|integer|min:0',
             'price' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -138,25 +140,26 @@ class BookController extends Controller
         try {
             $data = $request->except('cover_image');
             
-            // Handle stock changes
             $stockDiff = $request->total_stock - $book->total_stock;
             $data['available_stock'] = $book->available_stock + $stockDiff;
+            $data['is_active'] = $request->has('is_active') ? true : false;
 
             if ($request->hasFile('cover_image')) {
                 if ($book->cover_image) {
                     Storage::disk('public')->delete($book->cover_image);
                 }
-                $data['cover_image'] = $request->file('cover_image')->store('books', 'public');
+                $path = $request->file('cover_image')->store('books/covers', 'public');
+                $data['cover_image'] = $path;
             }
 
             $book->update($data);
 
-            // Handle additional book conditions for new stock
             if ($stockDiff > 0) {
                 $currentCount = $book->bookConditions()->count();
                 for ($i = 1; $i <= $stockDiff; $i++) {
                     BookCondition::create([
                         'book_id' => $book->id,
+                        'condition_code' => 'BC-' . $book->id . '-' . str_pad($currentCount + $i, 3, '0', STR_PAD_LEFT),
                         'book_code' => $book->id . '-' . str_pad($currentCount + $i, 3, '0', STR_PAD_LEFT),
                         'condition' => 'good',
                         'last_check_date' => now(),
@@ -168,9 +171,10 @@ class BookController extends Controller
 
             DB::commit();
             return redirect()->route('admin.books.index')->with('success', 'Buku berhasil diperbarui');
+            
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
         }
     }
 

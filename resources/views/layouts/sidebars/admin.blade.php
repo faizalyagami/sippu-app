@@ -35,7 +35,7 @@
     <a class="nav-link {{ request()->routeIs('admin.procurements.*') ? 'active' : '' }}" 
        href="{{ route('admin.procurements.index') }}">
         <i class="bi bi-cart-plus"></i>
-        <span>Pengadaan</span>
+        <span>Pengadaan Koleksi</span>
     </a>
 </li>
 

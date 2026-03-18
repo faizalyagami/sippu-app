@@ -10,7 +10,7 @@
                 <div class="card-header">
                     <h5 class="mb-0">
                         <i class="bi bi-plus-circle text-primary"></i> 
-                        Form Tambah Buku
+                        Input Buku
                     </h5>
                 </div>
                 <div class="card-body">
@@ -79,13 +79,13 @@
                                         <div class="mb-3">
                                             <label class="form-label">Tahun Terbit <span class="text-danger">*</span></label>
                                             <input type="number" 
-                                                   name="publication_year" 
-                                                   class="form-control @error('publication_year') is-invalid @enderror" 
-                                                   value="{{ old('publication_year', date('Y')) }}"
+                                                   name="publisher_year" 
+                                                   class="form-control @error('publisher_year') is-invalid @enderror" 
+                                                   value="{{ old('publisher_year', date('Y')) }}"
                                                    min="1900"
                                                    max="{{ date('Y') }}"
                                                    required>
-                                            @error('publication_year')
+                                            @error('publisher_year')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
