@@ -293,34 +293,34 @@ class BorrowingController extends Controller
             ->with('success', 'Status peminjaman berhasil diperbarui.');
     }
 
-    public function payPenalty(Request $request, $id)
-    {
-        $borrowing = Borrowing::findOrFail($id);
+    // public function payPenalty(Request $request, $id)
+    // {
+    //     $borrowing = Borrowing::findOrFail($id);
 
-        if ($borrowing->penalty_status !== 'unpaid') {
-            return redirect()->route('admin.borrowings.show', $id)
-                ->with('error', 'Denda sudah dibayar atau tidak ada.');
-        }
+    //     if ($borrowing->penalty_status !== 'unpaid') {
+    //         return redirect()->route('admin.borrowings.show', $id)
+    //             ->with('error', 'Denda sudah dibayar atau tidak ada.');
+    //     }
 
-        $validator = Validator::make($request->all(), [
-            'payment_amount' => 'required|numeric|min:' . $borrowing->penalty_amount,
-            'payment_method' => 'required|string|in:cash,transfer,credit_card',
-            'payment_notes' => 'nullable|string'
-        ]);
+    //     $validator = Validator::make($request->all(), [
+    //         'payment_amount' => 'required|numeric|min:' . $borrowing->penalty_amount,
+    //         'payment_method' => 'required|string|in:cash,transfer,credit_card',
+    //         'payment_notes' => 'nullable|string'
+    //     ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
+    //     if ($validator->fails()) {
+    //         return redirect()->back()
+    //             ->withErrors($validator)
+    //             ->withInput();
+    //     }
 
-        $borrowing->penalty_status = 'paid';
-        $borrowing->payment_date = now();
-        $borrowing->payment_method = $request->payment_method;
-        $borrowing->payment_notes = $request->payment_notes;
-        $borrowing->save();
+    //     $borrowing->penalty_status = 'paid';
+    //     $borrowing->payment_date = now();
+    //     $borrowing->payment_method = $request->payment_method;
+    //     $borrowing->payment_notes = $request->payment_notes;
+    //     $borrowing->save();
 
-        return redirect()->route('admin.borrowings.show', $id)
-            ->with('success', 'Pembayaran denda berhasil diproses.');
-    }
+    //     return redirect()->route('admin.borrowings.show', $id)
+    //         ->with('success', 'Pembayaran denda berhasil diproses.');
+    // }
 }

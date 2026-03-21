@@ -107,6 +107,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/reports/monthly', [App\Http\Controllers\Admin\ReportController::class, 'monthly'])->name('reports.monthly');
     Route::get('/reports/users', [App\Http\Controllers\Admin\ReportController::class, 'users'])->name('reports.users');
 
+    Route::get('/dashboard/requests', [App\Http\Controllers\Admin\RequestDashboardController::class, 'index'])->name('dashboard.requests');
+    Route::get('/dashboard/requests/statistics', [App\Http\Controllers\Admin\RequestDashboardController::class, 'getStatistics'])->name('dashboard.requests.statistics');
+    Route::get('/dashboard/requests/faculty-stats', [App\Http\Controllers\Admin\RequestDashboardController::class, 'facultyStats'])->name('dashboard.requests.faculty-stats');
+
     // User Management
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');

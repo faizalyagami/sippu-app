@@ -242,7 +242,7 @@
                         <i class="bi bi-cart-plus me-2"></i>Buat Pengadaan
                     </a>
                     <a href="{{ route('admin.borrowings.index', ['status' => 'pending']) }}" class="btn btn-warning">
-                        <i class="bi bi-clock-history me-2"></i>Pending Peminjaman
+                        <i class="bi bi-clock-history me-2"></i>Permintaan Menunggu
                     </a>
                     <a href="{{ route('admin.reports.index') }}" class="btn btn-info">
                         <i class="bi bi-file-text me-2"></i>Lihat Laporan
@@ -289,18 +289,18 @@
             </div>
         </div>
 
-        <!-- Peminjaman Aktif -->
+        <!-- Total Permintaan -->
         <div class="col-xl-3 col-md-6">
-            <div class="gradient-card bg-warning-gradient p-4">
+            <div class="gradient-card bg-info-gradient p-4">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="stat-label">PEMINJAMAN AKTIF</div>
-                        <div class="stat-value">{{ $activeBorrowings }}</div>
+                        <div class="stat-label">TOTAL PERMINTAAN</div>
+                        <div class="stat-value">{{ $totalBorrowings ?? 0 }}</div>
                         <div class="stat-change">
-                            <i class="bi bi-exclamation-triangle me-1"></i>{{ $overdueBorrowings }} Terlambat
+                            <i class="bi bi-check-circle me-1"></i>{{ $approvedBorrowings ?? 0 }} Disetujui
                         </div>
                     </div>
-                    <i class="bi bi-arrow-left-right card-icon"></i>
+                    <i class="bi bi-envelope card-icon"></i>
                 </div>
             </div>
         </div>
@@ -358,10 +358,10 @@
             <div class="gradient-card bg-warning-gradient p-4">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="stat-label">PENDING PEMINJAMAN</div>
+                        <div class="stat-label">PERMINTAAN MENUNGGU</div>
                         <div class="stat-value">{{ $pendingBorrowings }}</div>
                         <div class="stat-change">
-                            <i class="bi bi-clock me-1"></i>Menunggu
+                            <i class="bi bi-clock me-1"></i>Perlu diproses
                         </div>
                     </div>
                     <i class="bi bi-clock-history card-icon"></i>
@@ -387,13 +387,13 @@
 
     <!-- Row 3: Charts and Stats -->
     <div class="row g-4 mb-4">
-        <!-- Chart Peminjaman -->
+        <!-- Chart Permintaan -->
         <div class="col-xl-8">
             <div class="glass-card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0">
                         <i class="bi bi-graph-up text-primary me-2"></i>
-                        Grafik Peminjaman (7 Hari Terakhir)
+                        Grafik Permintaan (7 Hari Terakhir)
                     </h5>
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-sm btn-outline-primary active">Minggu</button>
@@ -427,11 +427,11 @@
                     
                     <div class="p-3 border rounded-3 bg-light">
                         <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Buku Dipinjam</small>
-                            <small class="text-warning fw-bold">{{ $totalBorrowed }}</small>
+                            <small class="text-muted">Total Permintaan</small>
+                            <small class="text-info fw-bold">{{ $totalBorrowings ?? 0 }}</small>
                         </div>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-warning" style="width: {{ $totalBooks > 0 ? ($totalBorrowed/$totalBooks)*100 : 0 }}%"></div>
+                            <div class="progress-bar bg-info" style="width: 100%"></div>
                         </div>
                     </div>
                     
@@ -490,14 +490,14 @@
 
     <!-- Row 4: Tables -->
     <div class="row g-4 mb-4">
-        <!-- Peminjaman Terbaru -->
+        <!-- Permintaan Terbaru -->
         <div class="col-xl-6">
             <div class="glass-card">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
-                            <i class="bi bi-clock-history text-primary me-2"></i>
-                            Peminjaman Terbaru
+                            <i class="bi bi-envelope text-primary me-2"></i>
+                            Permintaan Terbaru
                             <span class="badge bg-soft-primary ms-2">{{ $recentBorrowings->count() }}</span>
                         </h5>
                         <a href="{{ route('admin.borrowings.index') }}" class="btn btn-sm btn-outline-primary">
@@ -526,23 +526,26 @@
                                 @php
                                     $statusColors = [
                                         'pending' => 'warning',
-                                        'approved' => 'info',
-                                        'borrowed' => 'primary',
-                                        'returned' => 'success',
-                                        'overdue' => 'danger',
-                                        'cancelled' => 'secondary'
+                                        'approved' => 'success',
+                                        'cancelled' => 'danger'
+                                    ];
+                                    $statusText = [
+                                        'pending' => 'Menunggu',
+                                        'approved' => 'Disetujui',
+                                        'cancelled' => 'Ditolak'
                                     ];
                                     $statusColor = $statusColors[$borrowing->status] ?? 'secondary';
+                                    $statusDisplay = $statusText[$borrowing->status] ?? ucfirst($borrowing->status);
                                 @endphp
                                 <span class="badge bg-soft-{{ $statusColor }}">
-                                    {{ ucfirst($borrowing->status) }}
+                                    {{ $statusDisplay }}
                                 </span>
                             </div>
                         </div>
                         @empty
                         <div class="text-center py-4">
                             <i class="bi bi-inbox fs-1 d-block mb-3 text-muted"></i>
-                            <p class="text-muted">Belum ada peminjaman</p>
+                            <p class="text-muted">Belum ada permintaan</p>
                         </div>
                         @endforelse
                     </div>
@@ -746,7 +749,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Grafik Peminjaman
+        // Grafik Permintaan
         const ctx = document.getElementById('borrowingChart')?.getContext('2d');
         
         if (ctx) {
@@ -759,7 +762,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Jumlah Peminjaman',
+                        label: 'Jumlah Permintaan',
                         data: data,
                         borderColor: '#667eea',
                         backgroundColor: 'rgba(102, 126, 234, 0.1)',

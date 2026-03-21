@@ -1,4 +1,5 @@
 <?php
+// database/seeders/BorrowingSeeder.php
 
 namespace Database\Seeders;
 
@@ -13,7 +14,7 @@ class BorrowingSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info('Starting to seed borrowing data...');
+        $this->command->info('Starting to seed permintaan data...');
 
         // Ambil semua user kaprodi (role_id = 2)
         $kaprodiUsers = User::where('role_id', 2)->get();
@@ -32,10 +33,9 @@ class BorrowingSeeder extends Seeder
         }
 
         $totalBorrowings = 0;
-        $statuses = ['pending', 'approved', 'borrowed', 'returned', 'overdue', 'cancelled'];
         $now = Carbon::now();
 
-        // Buat 50 data peminjaman
+        // Buat 50 data permintaan
         for ($i = 1; $i <= 50; $i++) {
             // Pilih user kaprodi secara acak
             $user = $kaprodiUsers->random();
@@ -60,36 +60,29 @@ class BorrowingSeeder extends Seeder
             
             if (empty($borrowingItems)) continue;
             
-            // Generate tanggal peminjaman acak (1-60 hari yang lalu)
-            $borrowingDate = Carbon::now()->subDays(rand(1, 60));
+            // Generate tanggal permintaan acak (1-60 hari yang lalu)
+            $requestDate = Carbon::now()->subDays(rand(1, 60));
             
-            // Status berdasarkan tanggal
-            $status = $this->determineStatus($borrowingDate, $now);
+            // Tentukan status (hanya 3 status)
+            $status = $this->determineStatus();
             
-            // Hitung tanggal pengembalian (14 hari setelah pinjam)
-            $expectedReturnDate = $borrowingDate->copy()->addDays(14);
+            // Set expected_return_date ke tanggal yang sama + 14 hari (default)
+            $expectedReturnDate = $requestDate->copy()->addDays(14);
             
-            // Tanggal pengembalian aktual (jika status returned)
-            $actualReturnDate = null;
-            
-            if ($status == 'returned') {
-                $actualReturnDate = $expectedReturnDate->copy()->addDays(rand(-2, 5));
-            }
-            
-            // Buat borrowing
+            // Buat borrowing (sebagai permintaan)
             $borrowing = Borrowing::create([
                 'user_id' => $user->id,
-                'approved_by' => $status != 'pending' ? 1 : null,
-                'borrowing_date' => $borrowingDate,
-                'expected_return_date' => $expectedReturnDate,
-                'actual_return_date' => $actualReturnDate,
+                'approved_by' => ($status != 'pending') ? 1 : null, // Admin id = 1
+                'borrowing_date' => $requestDate,
+                'expected_return_date' => $expectedReturnDate, // Beri nilai default
+                'actual_return_date' => null,
                 'status' => $status,
                 'purpose' => $this->getRandomPurpose(),
                 'notes' => rand(0, 1) ? 'Catatan: ' . $this->getRandomNotes() : null,
-                'rejection_reason' => $status == 'cancelled' ? 'Alasan: ' . $this->getRandomRejectionReason() : null,
+                'rejection_reason' => $status == 'cancelled' ? $this->getRandomRejectionReason() : null,
                 'total_items' => $totalItems,
-                'created_at' => $borrowingDate,
-                'updated_at' => $borrowingDate->copy()->addHours(rand(1, 48)),
+                'created_at' => $requestDate,
+                'updated_at' => ($status != 'pending') ? $requestDate->copy()->addHours(rand(1, 48)) : $requestDate,
             ]);
 
             // Buat borrowing items
@@ -97,82 +90,43 @@ class BorrowingSeeder extends Seeder
                 $book = $item['book'];
                 $quantity = $item['quantity'];
                 
-                // Update stock jika status bukan pending
-                if ($status == 'approved' || $status == 'borrowed') {
-                    $book->available_stock -= $quantity;
-                    $book->borrowed_stock += $quantity;
-                    $book->save();
-                } elseif ($status == 'returned') {
-                    $book->available_stock += $quantity;
-                    $book->borrowed_stock -= $quantity;
-                    $book->save();
-                }
-                
-                // Tentukan status item
-                $itemStatus = 'borrowed';
-                $returnedQty = 0;
-                $damagedQty = 0;
-                $lostQty = 0;
-                
-                if ($status == 'returned') {
-                    $itemStatus = 'returned';
-                    $returnedQty = $quantity;
-                    
-                    // Kemungkinan rusak atau hilang (5%)
-                    if (rand(1, 100) <= 5) {
-                        $damagedQty = rand(1, $quantity);
-                        $returnedQty = $quantity - $damagedQty;
-                        $itemStatus = $damagedQty == $quantity ? 'damaged' : 'partial';
-                    } elseif (rand(1, 100) <= 3) {
-                        $lostQty = rand(1, $quantity);
-                        $returnedQty = $quantity - $lostQty;
-                        $itemStatus = $lostQty == $quantity ? 'lost' : 'partial';
-                    }
-                }
-                
                 BorrowingItem::create([
                     'borrowing_id' => $borrowing->id,
                     'book_id' => $book->id,
                     'quantity' => $quantity,
-                    'returned_quantity' => $returnedQty,
-                    'damaged_quantity' => $damagedQty,
-                    'lost_quantity' => $lostQty,
-                    'status' => $itemStatus,
-                    'condition_notes' => ($damagedQty > 0 || $lostQty > 0) ? $this->getRandomConditionNotes() : null,
-                    'return_date' => $status == 'returned' ? $actualReturnDate : null,
-                    'created_at' => $borrowingDate,
-                    'updated_at' => $borrowingDate->copy()->addHours(rand(1, 48)),
+                    'returned_quantity' => 0,
+                    'damaged_quantity' => 0,
+                    'lost_quantity' => 0,
+                    'status' => 'borrowed',
+                    'condition_notes' => null,
+                    'return_date' => null,
+                    'created_at' => $requestDate,
+                    'updated_at' => $requestDate,
                 ]);
             }
 
             $totalBorrowings++;
             
             if ($i % 10 == 0) {
-                $this->command->info("Created {$i} borrowings...");
+                $this->command->info("Created {$i} permintaan...");
             }
         }
 
-        $this->command->info("Successfully seeded {$totalBorrowings} borrowings!");
+        $this->command->info("Successfully seeded {$totalBorrowings} permintaan!");
     }
 
     /**
-     * Determine status based on dates
+     * Determine status (hanya 3 status)
      */
-    private function determineStatus($borrowingDate, $now)
+    private function determineStatus()
     {
         $rand = rand(1, 100);
         
-        // 15% pending, 20% approved, 25% borrowed, 25% returned, 10% overdue, 5% cancelled
-        if ($rand <= 15) {
+        // Distribusi: 40% pending, 35% approved, 25% cancelled
+        if ($rand <= 40) {
             return 'pending';
-        } elseif ($rand <= 35) {
+        } elseif ($rand <= 75) {
             return 'approved';
-        } elseif ($rand <= 60) {
-            return 'borrowed';
-        } elseif ($rand <= 85) {
-            return 'returned';
-        } elseif ($rand <= 95) {
-            return 'overdue';
         } else {
             return 'cancelled';
         }
@@ -184,16 +138,16 @@ class BorrowingSeeder extends Seeder
     private function getRandomPurpose()
     {
         $purposes = [
-            'Bahan ajar mata kuliah',
-            'Penelitian tugas akhir',
-            'Referensi skripsi',
-            'Bahan presentasi',
-            'Studi literatur',
-            'Persiapan ujian',
+            'Untuk bahan ajar mata kuliah',
+            'Referensi penelitian tugas akhir',
+            'Bahan skripsi mahasiswa',
+            'Persiapan presentasi seminar',
+            'Studi literatur untuk jurnal',
             'Pengembangan materi kuliah',
             'Penelitian dosen',
-            'Tugas kelompok',
-            'Bahan diskusi',
+            'Tugas kelompok mahasiswa',
+            'Bahan diskusi kelas',
+            'Referensi praktikum',
         ];
         
         return $purposes[array_rand($purposes)];
@@ -205,13 +159,12 @@ class BorrowingSeeder extends Seeder
     private function getRandomNotes()
     {
         $notes = [
-            'Harap diperpanjang',
-            'Buku dalam kondisi baik',
-            'Akan dikembalikan tepat waktu',
             'Mohon segera diproses',
             'Butuh untuk minggu depan',
-            'Buku sangat membantu',
-            'Terima kasih',
+            'Buku sangat diperlukan',
+            'Terima kasih atas bantuannya',
+            'Semoga tersedia',
+            'Untuk keperluan mendesak',
         ];
         
         return $notes[array_rand($notes)];
@@ -223,32 +176,16 @@ class BorrowingSeeder extends Seeder
     private function getRandomRejectionReason()
     {
         $reasons = [
-            'Stok tidak mencukupi',
-            'Buku sedang dalam perbaikan',
-            'Data tidak lengkap',
-            'Melebihi batas peminjaman',
-            'Ada tunggakan peminjaman sebelumnya',
+            'Stok buku tidak mencukupi',
+            'Buku sedang dalam proses perbaikan',
             'Buku hanya untuk referensi di tempat',
+            'Melebihi batas maksimal permintaan',
+            'Data permintaan tidak lengkap',
+            'Buku tidak tersedia untuk dipinjam',
+            'Sedang dalam masa pemeliharaan',
+            'Buku sudah dipesan oleh peminjam lain',
         ];
         
         return $reasons[array_rand($reasons)];
-    }
-
-    /**
-     * Get random condition notes
-     */
-    private function getRandomConditionNotes()
-    {
-        $notes = [
-            'Beberapa halaman sobek',
-            'Cover sedikit rusak',
-            'Ada coretan pensil',
-            'Halaman terlipat',
-            'Binding longgar',
-            'Buku terkena air',
-            'Halaman hilang',
-        ];
-        
-        return $notes[array_rand($notes)];
     }
 }

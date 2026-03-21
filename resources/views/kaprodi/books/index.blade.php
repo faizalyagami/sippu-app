@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Permintaan Buku')
+@section('title', 'Katalog Buku')
 
 @section('content')
 <div class="container-fluid">
@@ -11,7 +11,7 @@
             Katalog Buku
         </h4>
         <a href="{{ route('kaprodi.requests.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Request Buku Baru
+            <i class="bi bi-plus-circle me-1"></i> Request Buku Baru
         </a>
     </div>
 
@@ -101,7 +101,7 @@
                             </button>
                         @else
                             <span class="text-muted small">
-                                <i class="bi bi-x-circle"></i>
+                                <i class="bi bi-x-circle"></i> Habis
                             </span>
                         @endif
                     </div>
@@ -118,6 +118,10 @@
                     <a href="{{ route('kaprodi.books.index') }}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filter
                     </a>
+                @else
+                    <a href="{{ route('kaprodi.requests.create') }}" class="btn btn-primary mt-2">
+                        <i class="bi bi-plus-circle me-1"></i> Request Buku
+                    </a>
                 @endif
             </div>
         </div>
@@ -133,6 +137,7 @@
         </div>
         <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm mb-0">
+                {{-- Previous Page Link --}}
                 @if($books->onFirstPage())
                     <li class="page-item disabled">
                         <span class="page-link" aria-hidden="true">
@@ -147,6 +152,7 @@
                     </li>
                 @endif
 
+                {{-- Pagination Elements --}}
                 @foreach($books->getUrlRange(max(1, $books->currentPage() - 2), min($books->lastPage(), $books->currentPage() + 2)) as $page => $url)
                     @if($page == $books->currentPage())
                         <li class="page-item active" aria-current="page">
@@ -159,6 +165,7 @@
                     @endif
                 @endforeach
 
+                {{-- Next Page Link --}}
                 @if($books->hasMorePages())
                     <li class="page-item">
                         <a class="page-link" href="{{ $books->nextPageUrl() }}" aria-label="Next">
@@ -192,15 +199,13 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-semibold">
                     <i class="bi bi-cart me-2"></i>
-                    Keranjang Peminjaman
+                    Keranjang Permintaan
                 </h6>
                 <span class="badge bg-primary rounded-pill" id="cartCount">0</span>
             </div>
         </div>
         <div class="card-body p-2">
-            <div id="cartItems" class="mb-2" style="max-height: 200px; overflow-y: auto;">
-                <!-- Cart items will be inserted here -->
-            </div>
+            <div id="cartItems" class="mb-2" style="max-height: 200px; overflow-y: auto;"></div>
             <div class="d-grid gap-1">
                 <a href="{{ route('kaprodi.borrowings.checkout') }}" class="btn btn-sm btn-success">
                     <i class="bi bi-arrow-right me-1"></i> Lanjut Checkout
@@ -260,6 +265,8 @@
     border-radius: 6px;
     font-size: 0.875rem;
     transition: all 0.2s;
+    min-width: 32px;
+    text-align: center;
 }
 
 .pagination .page-item.active .page-link {
@@ -275,6 +282,7 @@
 .pagination .page-item.disabled .page-link {
     background-color: transparent;
     color: #adb5bd;
+    pointer-events: none;
 }
 
 .badge.bg-light {
@@ -292,6 +300,11 @@
     align-items: center;
     justify-content: center;
     border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.add-to-cart:hover {
+    transform: scale(1.1);
 }
 
 .border-top {
@@ -305,12 +318,14 @@
     
     .pagination .page-link {
         padding: 0.3rem 0.6rem;
+        min-width: 28px;
     }
 }
 </style>
 
 @push('scripts')
 <script>
+// Cart functionality
 let cart = [];
 
 function loadCart() {
@@ -387,7 +402,7 @@ function addToCart(bookId, title, maxStock) {
     updateCartDisplay();
     
     // Visual feedback
-    const button = event.target.closest('.add-to-cart');
+    const button = event.target;
     const originalHtml = button.innerHTML;
     button.innerHTML = '<i class="bi bi-check"></i>';
     button.classList.remove('btn-outline-primary');
@@ -423,6 +438,17 @@ function clearCart() {
 // Load cart on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadCart();
+});
+
+// Event listener untuk tombol add to cart (menggunakan dataset)
+document.querySelectorAll('.add-to-cart').forEach(button => {
+    button.addEventListener('click', function() {
+        const bookId = this.dataset.id;
+        const title = this.dataset.title;
+        const stock = parseInt(this.dataset.stock);
+        
+        addToCart(bookId, title, stock);
+    });
 });
 
 // Auto submit filters

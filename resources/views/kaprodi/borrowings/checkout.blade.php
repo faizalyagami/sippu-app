@@ -12,7 +12,7 @@
         </a>
         <h4 class="mb-0 fw-semibold">
             <i class="bi bi-cart-check text-success me-2"></i>
-            Checkout Peminjaman
+            Checkout Permintaan
         </h4>
     </div>
 
@@ -23,7 +23,7 @@
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-semibold">
                         <i class="bi bi-cart me-2"></i>
-                        Daftar Buku yang Dipinjam
+                        Daftar Permintaan Buku
                     </h5>
                 </div>
                 <div class="card-body">
@@ -49,7 +49,7 @@
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-semibold">
                         <i class="bi bi-file-text me-2"></i>
-                        Ringkasan Peminjaman
+                        Ringkasan Permintaan
                     </h5>
                 </div>
                 <div class="card-body">
@@ -82,7 +82,7 @@
                     <form action="{{ route('kaprodi.borrowings.process-checkout') }}" method="POST" id="checkoutForm">
                         @csrf
                         
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label class="form-label fw-semibold">
                                 Tanggal Pengembalian <span class="text-danger">*</span>
                             </label>
@@ -100,7 +100,7 @@
                             @error('expected_return_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                        </div>
+                        </div> -->
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Tujuan/Keperluan</label>
@@ -116,7 +116,7 @@
                         <div id="hiddenInputsContainer"></div>
 
                         <button type="submit" class="btn btn-success w-100" id="submitBtn" disabled>
-                            <i class="bi bi-check-circle me-2"></i> Ajukan Peminjaman
+                            <i class="bi bi-check-circle me-2"></i> Ajukan Permintaan
                         </button>
                     </form>
 

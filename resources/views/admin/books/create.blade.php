@@ -167,7 +167,7 @@
                                             @enderror
                                         </div>
 
-                                        <div class="mb-3">
+                                        <!-- <div class="mb-3">
                                             <label class="form-label">Lokasi Rak</label>
                                             <input type="text" 
                                                    name="location_rack" 
@@ -177,7 +177,7 @@
                                             @error('location_rack')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
-                                        </div>
+                                        </div> -->
 
                                         <div class="mb-3">
                                             <label class="form-label">Harga</label>

@@ -1,21 +1,23 @@
-{{-- resources/views/admin/books/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Kelola Buku')
 
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <h4 class="mb-0 fw-semibold">
             <i class="bi bi-book text-primary me-2"></i>
             Kelola Buku
         </h4>
-        <a href="{{ route('admin.books.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i> Tambah Buku
-        </a>
-        <a href="{{ route('admin.procurements.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Buat Pengadaan Baru
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.books.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Tambah Buku
+            </a>
+            <a href="{{ route('admin.procurements.create') }}" class="btn btn-outline-primary">
+                <i class="bi bi-cart-plus me-1"></i> Buat Pengadaan
+            </a>
+        </div>
     </div>
 
     <!-- Statistik Cards -->
@@ -87,7 +89,7 @@
         <div class="card-body">
             <form method="GET" class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label">Cari</label>
+                    <label class="form-label fw-semibold">Cari</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0">
                             <i class="bi bi-search text-muted"></i>
@@ -100,7 +102,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Kategori</label>
+                    <label class="form-label fw-semibold">Kategori</label>
                     <select name="category" class="form-select">
                         <option value="">Semua Kategori</option>
                         @foreach($categories as $category)
@@ -111,7 +113,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Status Stok</label>
+                    <label class="form-label fw-semibold">Status Stok</label>
                     <select name="availability" class="form-select">
                         <option value="">Semua Status</option>
                         <option value="available" {{ request('availability') == 'available' ? 'selected' : '' }}>Tersedia</option>
@@ -137,11 +139,14 @@
 
     <!-- Tabel Buku -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-semibold">
                 <i class="bi bi-table text-primary me-2"></i>
                 Daftar Buku
             </h5>
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                Total: {{ $books->total() }} Buku
+            </span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -155,7 +160,7 @@
                             <th class="px-4 py-3" width="12%">Kategori</th>
                             <th class="px-4 py-3" width="10%">ISBN</th>
                             <th class="px-4 py-3 text-center" width="8%">Stok</th>
-                            <th class="px-4 py-3" width="10%">Lokasi</th>
+                            <!-- <th class="px-4 py-3" width="10%">Lokasi</th> -->
                             <th class="px-4 py-3 text-center" width="12%">Aksi</th>
                         </tr>
                     </thead>
@@ -168,8 +173,7 @@
                                     <img src="{{ asset('storage/'.$book->cover_image) }}" 
                                          alt="Cover" 
                                          class="rounded" 
-                                         style="width: 45px; height: 60px; object-fit: cover;"
-                                         onerror="this.onerror=null; this.src='{{ asset('images/no-cover.jpg') }}';">
+                                         style="width: 45px; height: 60px; object-fit: cover;">
                                 @else
                                     <div class="bg-light d-flex align-items-center justify-content-center rounded" 
                                          style="width: 45px; height: 60px;">
@@ -216,7 +220,7 @@
                                     <small class="text-muted">Dipinjam: {{ $book->borrowed_stock }}</small>
                                 @endif
                             </td>
-                            <td class="px-4">{{ $book->location_rack ?? '-' }}</td>
+                            <!-- <td class="px-4">{{ $book->location_rack ?? '-' }}</td> -->
                             <td class="px-4 text-center">
                                 <div class="btn-group">
                                     <a href="{{ route('admin.books.edit', $book->id) }}" 
@@ -255,9 +259,14 @@
                                         <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filter
                                     </a>
                                 @else
-                                    <a href="{{ route('admin.books.create') }}" class="btn btn-primary mt-2">
-                                        <i class="bi bi-plus-circle me-1"></i> Tambah Buku
-                                    </a>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a href="{{ route('admin.books.create') }}" class="btn btn-primary">
+                                            <i class="bi bi-plus-circle me-1"></i> Tambah Buku
+                                        </a>
+                                        <a href="{{ route('admin.procurements.create') }}" class="btn btn-outline-primary">
+                                            <i class="bi bi-cart-plus me-1"></i> Buat Pengadaan
+                                        </a>
+                                    </div>
                                 @endif
                             </td>
                         </tr>
@@ -376,6 +385,8 @@
     border-radius: 6px;
     font-size: 0.875rem;
     transition: all 0.2s;
+    min-width: 32px;
+    text-align: center;
 }
 
 .pagination .page-item.active .page-link {
@@ -391,6 +402,7 @@
 .pagination .page-item.disabled .page-link {
     background-color: transparent;
     color: #adb5bd;
+    pointer-events: none;
 }
 
 .btn-group .btn {
@@ -406,6 +418,11 @@
     
     .pagination .page-link {
         padding: 0.3rem 0.6rem;
+        min-width: 28px;
+    }
+    
+    .btn-group .btn {
+        padding: 0.2rem 0.4rem;
     }
 }
 </style>
