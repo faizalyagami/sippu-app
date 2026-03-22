@@ -25,11 +25,11 @@ class BorrowingController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        
+
         $query = Borrowing::with(['items.book', 'approvedBy'])
             ->where('user_id', $user->id);
 
-        // Filter by status (hanya 3 status)
+        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -49,7 +49,7 @@ class BorrowingController extends Controller
 
         $borrowings = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        // Statistik hanya untuk 3 status
+        // Statistik
         $totalBorrowings = Borrowing::where('user_id', $user->id)->count();
         $pendingBorrowings = Borrowing::where('user_id', $user->id)
             ->where('status', 'pending')
@@ -75,6 +75,15 @@ class BorrowingController extends Controller
      */
     public function checkout()
     {
+        $hasPendingRequest = Borrowing::where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPendingRequest) {
+            return redirect()->route('kaprodi.borrowings.index')
+                ->with('error', 'Anda masih memiliki permintaan yang belum diproses. Harap tunggu hingga permintaan sebelumnya selesai.');
+        }
+
         $books = Book::with('category')
             ->where('is_active', true)
             ->where('available_stock', '>', 0)
@@ -91,15 +100,22 @@ class BorrowingController extends Controller
      */
     public function processCheckout(Request $request)
     {
+        $hasPendingRequest = Borrowing::where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPendingRequest) {
+            return redirect()->route('kaprodi.borrowings.index')
+                ->with('error', 'Anda masih memiliki permintaan yang belum diproses. Harap tunggu hingga permintaan sebelumnya selesai.');
+        }
+
         Log::info('Checkout request data:', $request->all());
 
-        // HAPUS validasi expected_return_date
         $validator = Validator::make($request->all(), [
             'books' => 'required|array|min:1',
             'books.*.id' => 'required|exists:books,id',
             'books.*.quantity' => 'required|integer|min:1',
             'purpose' => 'nullable|string|max:500',
-            // 'expected_return_date' => 'required|date|after:today|before:' . now()->addMonths(3) // HAPUS BARIS INI
         ]);
 
         if ($validator->fails()) {
@@ -121,11 +137,11 @@ class BorrowingController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create borrowing WITHOUT expected_return_date
+            // Create borrowing
             $borrowing = Borrowing::create([
                 'user_id' => auth()->id(),
                 'borrowing_date' => now(),
-                'expected_return_date' => null, // Set null karena tidak digunakan
+                'expected_return_date' => null,
                 'purpose' => $request->purpose,
                 'status' => 'pending',
                 'total_items' => collect($request->books)->sum('quantity')
@@ -137,16 +153,19 @@ class BorrowingController extends Controller
                     'borrowing_id' => $borrowing->id,
                     'book_id' => $item['id'],
                     'quantity' => $item['quantity'],
-                    'status' => 'pending' // Ubah dari 'borrowed' ke 'pending'
+                    'status' => 'pending',
+                    'returned_quantity' => 0,
+                    'damage_quantity' => 0,
+                    'lost_quantity' => 0,
                 ]);
             }
 
             DB::commit();
 
+            // Redirect ke halaman show dengan instruksi clear cart
             return redirect()->route('kaprodi.borrowings.show', $borrowing->id)
                 ->with('success', 'Permintaan berhasil diajukan dan menunggu persetujuan admin.')
-                ->with('clear_cart', true);
-
+                ->with('clear_cart_now', true);
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Checkout error: ' . $e->getMessage());
@@ -165,6 +184,14 @@ class BorrowingController extends Controller
             ->where('user_id', auth()->id())
             ->findOrFail($id);
 
+        // Log untuk debugging
+        Log::info('Showing borrowing:', [
+            'id' => $borrowing->id,
+            'status' => $borrowing->status,
+            'items_count' => $borrowing->items->count(),
+            'items_status' => $borrowing->items->pluck('status')
+        ]);
+
         return view('kaprodi.borrowings.show', compact('borrowing'));
     }
 
@@ -173,17 +200,65 @@ class BorrowingController extends Controller
      */
     public function cancel($id)
     {
-        $borrowing = Borrowing::where('user_id', auth()->id())
-            ->where('status', 'pending')
-            ->findOrFail($id);
+        try {
+            DB::beginTransaction();
 
-        $borrowing->status = 'cancelled';
-        $borrowing->save();
+            $borrowing = Borrowing::where('user_id', auth()->id())
+                ->where('status', 'pending')
+                ->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Permintaan berhasil dibatalkan.'
-        ]);
+            Log::info('Cancelling borrowing:', [
+                'id' => $borrowing->id,
+                'current_status' => $borrowing->status,
+                'user_id' => auth()->id()
+            ]);
+
+            // Update status borrowing
+            $borrowing->status = 'cancelled';
+            $borrowing->save();
+
+            // Update semua items menjadi cancelled - PASTIKAN INI BERJALAN
+            $updatedItems = BorrowingItem::where('borrowing_id', $borrowing->id)
+                ->update([
+                    'status' => 'cancelled',
+                    'updated_at' => now()
+                ]);
+
+            Log::info('Updated items:', [
+                'borrowing_id' => $borrowing->id,
+                'items_updated' => $updatedItems,
+                'query' => BorrowingItem::where('borrowing_id', $borrowing->id)->toSql()
+            ]);
+
+            // Verifikasi update
+            $items = BorrowingItem::where('borrowing_id', $borrowing->id)->get();
+            foreach ($items as $item) {
+                Log::info('Item status after update:', [
+                    'item_id' => $item->id,
+                    'status' => $item->status
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permintaan berhasil dibatalkan.',
+                'data' => [
+                    'borrowing_status' => $borrowing->status,
+                    'items_updated' => $updatedItems
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error cancelling borrowing: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membatalkan permintaan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

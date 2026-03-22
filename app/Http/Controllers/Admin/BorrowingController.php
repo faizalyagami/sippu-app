@@ -44,11 +44,11 @@ class BorrowingController extends Controller
 
         // Search by borrowing number or user name
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('borrowing_number', 'like', "%{$request->search}%")
-                  ->orWhereHas('user', function($user) use ($request) {
-                      $user->where('name', 'like', "%{$request->search}%");
-                  });
+                    ->orWhereHas('user', function ($user) use ($request) {
+                        $user->where('name', 'like', "%{$request->search}%");
+                    });
             });
         }
 
@@ -76,10 +76,10 @@ class BorrowingController extends Controller
     public function show($id)
     {
         $borrowing = Borrowing::with([
-            'user', 
-            'approvedBy', 
+            'user',
+            'approvedBy',
             'items.book.category',
-            'items.book.bookConditions' => function($q) {
+            'items.book.bookConditions' => function ($q) {
                 $q->where('is_available', true);
             }
         ])->findOrFail($id);
@@ -122,10 +122,187 @@ class BorrowingController extends Controller
 
             return redirect()->route('admin.borrowings.show', $id)
                 ->with('success', 'Peminjaman berhasil disetujui.');
-
         } catch (\Exception $e) {
             DB::rollback();
             return redirect()->route('admin.borrowings.show', $id)
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function approveItem($id)
+    {
+        $item = BorrowingItem::with('book', 'borrowing')->findOrFail($id);
+
+        if ($item->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item ini sudah diproses.'
+            ], 400);
+        }
+
+        $book = $item->book;
+        if ($book->available_stock < $item->quantity) {
+            return response()->json([
+                'success' => false,
+                'message' => "Stok buku '{$book->title}' tidak mencukupi. Tersedia: {$book->available_stock}"
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $item->status = 'approved';
+            $item->save();
+
+            $book->available_stock -= $item->quantity;
+            $book->borrowed_stock += $item->quantity;
+            $book->save();
+
+            $borrowing = $item->borrowing;
+
+            $pendingItems = $borrowing->items()->where('status', 'pending')->count();
+            $approvedItems = $borrowing->items()->where('status', 'approved')->count();
+
+            if ($pendingItems == 0) {
+                if ($approvedItems > 0) {
+                    $borrowing->status = 'approved';
+                } else {
+                    $borrowing->status = 'cancelled';
+                }
+                $borrowing->save();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Permintaan buku berhasil disetujui.'
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi Kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function rejectItem(Request $request, $id)
+    {
+        $item = BorrowingItem::with('borrowing')->findOrFail($id);
+
+        if ($item->status !== 'pending') {
+            return redirect()->back()->with('error', 'Item ini sudah diproses.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'reject_reason' => 'required|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        DB::beginTransaction();
+        try {
+            $item->status = 'rejected';
+            $item->condition_notes = $request->rejection_reason;
+            $item->save();
+
+            $borrowing = $item->borrowing;
+            $pendingItems = $borrowing->items()->where('status', 'pending')->count();
+            $approvedItems = $borrowing->items()->where('status', 'approved')->count();
+
+            if ($pendingItems == 0) {
+                if ($approvedItems > 0) {
+                    $borrowing->status = 'approved';
+                } else {
+                    $borrowing->status = 'canceled';
+                }
+                $borrowing->save();
+            }
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function approveAll($id)
+    {
+        $borrowing = Borrowing::with('items.book')->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            foreach ($borrowing->items as $item) {
+                if ($item->status == 'pending') {
+                    $book = $item->book;
+
+                    // Check stock
+                    if ($book->available_stock >= $item->quantity) {
+                        $item->status = 'approved';
+                        $item->save();
+
+                        $book->available_stock -= $item->quantity;
+                        $book->borrowed_stock += $item->quantity;
+                        $book->save();
+                    }
+                }
+            }
+
+            // Update borrowing status
+            $borrowing->status = 'approved';
+            $borrowing->approved_by = auth()->id();
+            $borrowing->save();
+
+            DB::commit();
+
+            return redirect()->route('admin.borrowings.show', $id)
+                ->with('success', 'Semua permintaan berhasil disetujui.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject all items in a borrowing (optional)
+     */
+    public function rejectAll(Request $request, $id)
+    {
+        $borrowing = Borrowing::with('items')->findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'rejection_reason' => 'required|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($borrowing->items as $item) {
+                if ($item->status == 'pending') {
+                    $item->status = 'rejected';
+                    $item->condition_notes = $request->rejection_reason;
+                    $item->save();
+                }
+            }
+
+            $borrowing->status = 'cancelled';
+            $borrowing->rejection_reason = $request->rejection_reason;
+            $borrowing->approved_by = auth()->id();
+            $borrowing->save();
+
+            DB::commit();
+
+            return redirect()->route('admin.borrowings.show', $id)
+                ->with('success', 'Semua permintaan berhasil ditolak.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -188,7 +365,7 @@ class BorrowingController extends Controller
 
             foreach ($borrowing->items as $item) {
                 $returnData = $request->items[$item->id];
-                
+
                 // Tentukan quantity berdasarkan kondisi
                 if ($returnData['condition'] == 'good') {
                     $returnedQty = $item->quantity;
@@ -198,7 +375,7 @@ class BorrowingController extends Controller
                     $returnedQty = 0;
                     $damagedQty = $item->quantity;
                     $lostQty = 0;
-                    
+
                     // Hitung denda untuk buku rusak (contoh: 50% dari harga)
                     $penalty = ($item->book->price ?? 0) * 0.5;
                     $totalPenalty += $penalty;
@@ -206,7 +383,7 @@ class BorrowingController extends Controller
                     $returnedQty = 0;
                     $damagedQty = 0;
                     $lostQty = $item->quantity;
-                    
+
                     // Hitung denda untuk buku hilang (100% dari harga)
                     $penalty = $item->book->price ?? 0;
                     $totalPenalty += $penalty;
@@ -223,15 +400,15 @@ class BorrowingController extends Controller
 
                 // Update book stock
                 $book = Book::find($item->book_id);
-                
+
                 if ($returnedQty > 0) {
                     $book->returnBook($returnedQty);
                 }
-                
+
                 if ($damagedQty > 0 || $lostQty > 0) {
                     // Update book stock (borrowed stock berkurang, available stock tidak bertambah)
                     $book->borrowed_stock -= ($damagedQty + $lostQty);
-                    
+
                     // Update book conditions
                     $conditions = BookCondition::where('book_id', $book->id)
                         ->where('is_available', false)
@@ -244,7 +421,7 @@ class BorrowingController extends Controller
                         $condition->is_available = false;
                         $condition->save();
                     }
-                    
+
                     $book->save();
                 }
             }
@@ -252,7 +429,7 @@ class BorrowingController extends Controller
             // Update borrowing
             $borrowing->actual_return_date = now();
             $borrowing->status = 'returned';
-            
+
             // Simpan penalty jika ada
             if ($totalPenalty > 0 || $request->filled('penalty_amount')) {
                 $penaltyAmount = $request->penalty_amount ?? $totalPenalty;
@@ -260,15 +437,14 @@ class BorrowingController extends Controller
                 $borrowing->penalty_notes = $request->penalty_notes ?? 'Denda kerusakan/kehilangan buku';
                 $borrowing->penalty_status = 'unpaid';
             }
-            
+
             $borrowing->save();
 
             DB::commit();
 
             return redirect()->route('admin.borrowings.show', $id)
-                ->with('success', 'Pengembalian buku berhasil diproses.' . 
+                ->with('success', 'Pengembalian buku berhasil diproses.' .
                     ($totalPenalty > 0 ? " Total denda: Rp " . number_format($totalPenalty, 0, ',', '.') : ''));
-
         } catch (\Exception $e) {
             DB::rollback();
             return redirect()->back()

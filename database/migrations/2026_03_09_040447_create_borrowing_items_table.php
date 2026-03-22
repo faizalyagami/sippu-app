@@ -21,11 +21,11 @@ class CreateBorrowingItemsTable extends Migration
             $table->integer('returned_quantity')->default(0);
             $table->integer('damaged_quantity')->default(0);
             $table->integer('lost_quantity')->default(0);
-            $table->enum('status', ['borrowed', 'partial', 'returned', 'damaged', 'lost'])
-                  ->default('borrowed');
+            $table->enum('status', ['pending', 'approved', 'reject', 'completed'])
+                ->default('pending');
             $table->text('condition_notes')->nullable();
             $table->date('return_date')->nullable();
-            
+
             // Indexes
             $table->index('borrowing_id');
             $table->index('book_id');

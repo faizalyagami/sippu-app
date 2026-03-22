@@ -23,7 +23,11 @@ class BorrowingItem extends Model
     ];
 
     protected $casts = [
-        'return_date' => 'date'
+        'return_date' => 'date',
+        'quantity' => 'integer',
+        'returned_quantity' => 'integer',
+        'damaged_quantity' => 'integer',
+        'lost_quantity' => 'integer'
     ];
 
     public function borrowing()
@@ -36,16 +40,42 @@ class BorrowingItem extends Model
         return $this->belongsTo(Book::class);
     }
 
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopeReject($query)
+    {
+        return $query->where('status', 'rejected');
+    }
+
     public function getStatusBadgeAttribute()
     {
         $badges = [
-            'borrowed' => 'primary',
-            'partial' => 'warning',
-            'returned' => 'success',
-            'damaged' => 'danger',
-            'lost' => 'dark'
+            'pending' => ['bg-warning', 'Menunggu'],
+            'approved' => ['bg-success', 'Disetujui'],
+            'rejected' => ['bg-danger', 'Ditolak'],
+            'completed' => ['bg-info', 'Selesai']
         ];
-        
-        return $badges[$this->status] ?? 'secondary';
+
+        $badge = $badges[$this->status] ?? ['bg-secondary', $this->status];
+        return '<span class="badge ' . $badge[0] . ' bg-opacity-10 text-' . str_replace('bg-', '', $badge[0]) . ' px-3 py-2">' . $badge[1] . '</span>';
+    }
+
+    public function getStatusTextAttribute()
+    {
+        $texts = [
+            'pending' => 'Menunggu',
+            'approved' => 'Disetujui',
+            'rejected' => 'Ditolak',
+            'completed' => 'Selesai'
+        ];
+        return $texts[$this->status] ?? $this->status;
     }
 }

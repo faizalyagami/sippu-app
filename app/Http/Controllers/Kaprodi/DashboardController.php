@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Kaprodi/DashboardController.php
 
 namespace App\Http\Controllers\Kaprodi;
 
@@ -69,15 +68,15 @@ class DashboardController extends Controller
                 ->where('status', 'approved')
                 ->count();
 
-            // Buku yang sering dipinjam - VERSI AMAN
+            // Buku yang sering dipinjam - VERSI ELOQUENT (FIXED)
             try {
-                $popularBooks = DB::table('books')
-                    ->select('books.*', DB::raw('COUNT(borrowing_items.id) as total_borrowed'))
-                    ->leftJoin('borrowing_items', 'books.id', '=', 'borrowing_items.book_id')
-                    ->leftJoin('borrowings', 'borrowing_items.borrowing_id', '=', 'borrowings.id')
-                    ->where('borrowings.user_id', $user->id)
-                    ->groupBy('books.id')
-                    ->orderByDesc('total_borrowed')
+                $popularBooks = Book::withCount(['borrowingItems' => function ($query) use ($user) {
+                    $query->whereHas('borrowing', function ($q) use ($user) {
+                        $q->where('user_id', $user->id)
+                            ->where('status', 'approved');
+                    });
+                }])
+                    ->orderByDesc('borrowing_items_count')
                     ->limit(5)
                     ->get();
             } catch (\Exception $e) {
@@ -86,7 +85,9 @@ class DashboardController extends Controller
             }
 
             // Jika tidak ada data populer, ambil buku random
-            if ($popularBooks->isEmpty()) {
+            if ($popularBooks->isEmpty() || $popularBooks->every(function ($book) {
+                return $book->borrowing_items_count == 0;
+            })) {
                 $popularBooks = Book::inRandomOrder()->limit(5)->get();
             }
 
@@ -124,11 +125,10 @@ class DashboardController extends Controller
             ];
 
             return view('kaprodi.dashboard.index', $data);
-
         } catch (\Exception $e) {
             Log::error('Dashboard error: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             // Return view dengan data kosong
             return view('kaprodi.dashboard.index', [
                 'totalBorrowings' => 0,

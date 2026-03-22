@@ -24,20 +24,20 @@
                         <span class="input-group-text bg-white border-end-0">
                             <i class="bi bi-search text-muted"></i>
                         </span>
-                        <input type="text" 
-                               name="search" 
-                               class="form-control border-start-0 ps-0" 
-                               placeholder="Cari judul, penulis, penerbit, ISBN..."
-                               value="{{ request('search') }}">
+                        <input type="text"
+                            name="search"
+                            class="form-control border-start-0 ps-0"
+                            placeholder="Cari judul, penulis, penerbit, ISBN..."
+                            value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <select name="category" class="form-select">
                         <option value="">Semua Kategori</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
-                                {{ $category->name }}
-                            </option>
+                        @foreach($categories ?? [] as $category)
+                        <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
+                            {{ $category->name }}
+                        </option>
                         @endforeach
                     </select>
                 </div>
@@ -45,7 +45,6 @@
                     <select name="availability" class="form-select">
                         <option value="">Semua</option>
                         <option value="available" {{ request('availability') == 'available' ? 'selected' : '' }}>Tersedia</option>
-                        <option value="unavailable" {{ request('availability') == 'unavailable' ? 'selected' : '' }}>Stok Habis</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -57,22 +56,29 @@
         </div>
     </div>
 
+    <!-- Debug Info -->
+    <div class="alert alert-info">
+        <strong>Debug:</strong> Total Buku: {{ $books->total() ?? 0 }} |
+        Halaman: {{ $books->currentPage() ?? 1 }} |
+        Kategori: {{ $categories->count() ?? 0 }}
+    </div>
+
     <!-- Books Grid -->
     <div class="row g-4">
-        @forelse($books as $book)
+        @forelse(($books ?? []) as $book)
         <div class="col-xl-3 col-lg-4 col-md-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="position-relative">
                     @if($book->cover_image)
-                        <img src="{{ asset('storage/'.$book->cover_image) }}" 
-                             class="card-img-top" 
-                             alt="{{ $book->title }}"
-                             style="height: 200px; object-fit: cover;">
+                    <img src="{{ asset('storage/'.$book->cover_image) }}"
+                        class="card-img-top"
+                        alt="{{ $book->title }}"
+                        style="height: 200px; object-fit: cover;">
                     @else
-                        <div class="bg-light d-flex align-items-center justify-content-center" 
-                             style="height: 200px;">
-                            <i class="bi bi-image fs-1 text-muted"></i>
-                        </div>
+                    <div class="bg-light d-flex align-items-center justify-content-center"
+                        style="height: 200px;">
+                        <i class="bi bi-image fs-1 text-muted"></i>
+                    </div>
                     @endif
                     <span class="position-absolute top-0 end-0 m-2 badge rounded-pill bg-{{ $book->available_stock > 0 ? 'success' : 'secondary' }}">
                         {{ $book->available_stock > 0 ? 'Tersedia' : 'Stok Habis' }}
@@ -81,28 +87,28 @@
                 <div class="card-body">
                     <h6 class="card-title fw-semibold mb-1">{{ Str::limit($book->title, 50) }}</h6>
                     <p class="text-muted small mb-2">{{ $book->author }}</p>
-                    
+
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-light text-dark">{{ $book->category->name }}</span>
+                        <span class="badge bg-light text-dark">{{ $book->category->name ?? 'Umum' }}</span>
                         <small class="text-muted">{{ $book->publisher_year }}</small>
                     </div>
-                    
+
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="text-muted">
                             <i class="bi bi-box me-1"></i> Stok: {{ $book->available_stock }}
                         </small>
                         @if($book->available_stock > 0)
-                            <button type="button" 
-                                    class="btn btn-sm btn-outline-primary add-to-cart" 
-                                    data-id="{{ $book->id }}"
-                                    data-title="{{ $book->title }}"
-                                    data-stock="{{ $book->available_stock }}">
-                                <i class="bi bi-cart-plus"></i>
-                            </button>
+                        <button type="button"
+                            class="btn btn-sm btn-outline-primary add-to-cart"
+                            data-id="{{ $book->id }}"
+                            data-title="{{ $book->title }}"
+                            data-stock="{{ $book->available_stock }}">
+                            <i class="bi bi-cart-plus"></i>
+                        </button>
                         @else
-                            <span class="text-muted small">
-                                <i class="bi bi-x-circle"></i> Habis
-                            </span>
+                        <span class="text-muted small">
+                            <i class="bi bi-x-circle"></i> Habis
+                        </span>
                         @endif
                     </div>
                 </div>
@@ -114,14 +120,14 @@
                 <i class="bi bi-emoji-frown fs-1 text-muted d-block mb-3"></i>
                 <h5 class="text-muted">Tidak ada buku ditemukan</h5>
                 @if(request('search') || request('category') || request('availability'))
-                    <p class="text-muted mb-3">Coba atur ulang filter pencarian Anda</p>
-                    <a href="{{ route('kaprodi.books.index') }}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filter
-                    </a>
+                <p class="text-muted mb-3">Coba atur ulang filter pencarian Anda</p>
+                <a href="{{ route('kaprodi.books.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filter
+                </a>
                 @else
-                    <a href="{{ route('kaprodi.requests.create') }}" class="btn btn-primary mt-2">
-                        <i class="bi bi-plus-circle me-1"></i> Request Buku
-                    </a>
+                <a href="{{ route('kaprodi.requests.create') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle me-1"></i> Request Buku
+                </a>
                 @endif
             </div>
         </div>
@@ -129,65 +135,71 @@
     </div>
 
     <!-- Pagination -->
-    @if($books->hasPages())
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top">
-        <div class="text-muted small mb-2 mb-md-0">
-            Menampilkan {{ $books->firstItem() ?? 0 }} - {{ $books->lastItem() ?? 0 }} 
-            dari {{ $books->total() }} data
+    @if(isset($books) && $books->hasPages())
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted small">
+            Menampilkan {{ $books->firstItem() ?? 0 }} - {{ $books->lastItem() ?? 0 }}
+            dari {{ $books->total() ?? 0 }} data
         </div>
         <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm mb-0">
                 {{-- Previous Page Link --}}
                 @if($books->onFirstPage())
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">
-                            <i class="bi bi-chevron-left"></i>
-                        </span>
-                    </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
                 @else
-                    <li class="page-item">
-                        <a class="page-link" href="{{ $books->previousPageUrl() }}" aria-label="Previous">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>
+                <li class="page-item">
+                    <a class="page-link" href="{{ $books->previousPageUrl() }}" rel="prev">&laquo;</a>
+                </li>
                 @endif
 
                 {{-- Pagination Elements --}}
-                @foreach($books->getUrlRange(max(1, $books->currentPage() - 2), min($books->lastPage(), $books->currentPage() + 2)) as $page => $url)
-                    @if($page == $books->currentPage())
-                        <li class="page-item active" aria-current="page">
-                            <span class="page-link">{{ $page }}</span>
-                        </li>
-                    @else
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                        </li>
-                    @endif
-                @endforeach
+                @php
+                $start = max(1, $books->currentPage() - 2);
+                $end = min($books->lastPage(), $books->currentPage() + 2);
+                @endphp
 
-                {{-- Next Page Link --}}
-                @if($books->hasMorePages())
-                    <li class="page-item">
-                        <a class="page-link" href="{{ $books->nextPageUrl() }}" aria-label="Next">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                @else
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">
-                            <i class="bi bi-chevron-right"></i>
-                        </span>
-                    </li>
+                @if($start > 1)
+                <li class="page-item">
+                    <a class="page-link" href="{{ $books->url(1) }}">1</a>
+                </li>
+                @if($start > 2)
+                <li class="page-item disabled"><span class="page-link">...</span></li>
                 @endif
+                @endif
+
+                @for($page = $start; $page <= $end; $page++)
+                    @if($page==$books->currentPage())
+                    <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
+                    @else
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $books->url($page) }}">{{ $page }}</a>
+                    </li>
+                    @endif
+                    @endfor
+
+                    @if($end < $books->lastPage())
+                        @if($end < $books->lastPage() - 1)
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                            @endif
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $books->url($books->lastPage()) }}">{{ $books->lastPage() }}</a>
+                            </li>
+                            @endif
+
+                            {{-- Next Page Link --}}
+                            @if($books->hasMorePages())
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $books->nextPageUrl() }}" rel="next">&raquo;</a>
+                            </li>
+                            @else
+                            <li class="page-item disabled">
+                                <span class="page-link">&raquo;</span>
+                            </li>
+                            @endif
             </ul>
         </nav>
-    </div>
-    @else
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-        <div class="text-muted small">
-            Menampilkan {{ $books->firstItem() ?? 0 }} - {{ $books->lastItem() ?? 0 }} 
-            dari {{ $books->total() }} data
-        </div>
     </div>
     @endif
 </div>
@@ -219,152 +231,159 @@
 </div>
 
 <style>
-.floating-cart {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 280px;
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.card {
-    border-radius: 12px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important;
-}
-
-.card-img-top {
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-}
-
-.pagination {
-    gap: 2px;
-}
-
-.pagination .page-link {
-    border: none;
-    color: #6c757d;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    transition: all 0.2s;
-    min-width: 32px;
-    text-align: center;
-}
-
-.pagination .page-item.active .page-link {
-    background-color: #0d6efd;
-    color: white;
-}
-
-.pagination .page-link:hover {
-    background-color: #e9ecef;
-    color: #0d6efd;
-}
-
-.pagination .page-item.disabled .page-link {
-    background-color: transparent;
-    color: #adb5bd;
-    pointer-events: none;
-}
-
-.badge.bg-light {
-    background-color: #f8f9fa !important;
-    color: #495057;
-    font-weight: normal;
-    padding: 0.35em 0.65em;
-}
-
-.add-to-cart {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.add-to-cart:hover {
-    transform: scale(1.1);
-}
-
-.border-top {
-    border-top: 1px solid rgba(0,0,0,0.05) !important;
-}
-
-@media (max-width: 768px) {
     .floating-cart {
-        width: 240px;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 280px;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
     }
-    
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .card {
+        border-radius: 12px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .card-img-top {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .pagination {
+        gap: 4px;
+    }
+
     .pagination .page-link {
-        padding: 0.3rem 0.6rem;
-        min-width: 28px;
+        border: none;
+        color: #6c757d;
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background-color: transparent;
     }
-}
+
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .pagination .page-link:hover:not(.active) {
+        background-color: #e9ecef;
+        color: #667eea;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .badge.bg-light {
+        background-color: #f8f9fa !important;
+        color: #495057;
+    }
+
+    .add-to-cart {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .add-to-cart:hover {
+        transform: scale(1.1);
+    }
+
+    @media (max-width: 768px) {
+        .floating-cart {
+            width: 240px;
+        }
+
+        .pagination .page-link {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
 </style>
 
 @push('scripts')
 <script>
-// Cart functionality
-let cart = [];
+    // Cart functionality
+    let cart = [];
 
-function loadCart() {
-    try {
-        const savedCart = localStorage.getItem('borrowingCart');
-        if (savedCart) {
-            cart = JSON.parse(savedCart);
-            if (!Array.isArray(cart)) {
-                cart = [];
-                localStorage.removeItem('borrowingCart');
+    function loadCart() {
+        try {
+            // Cek session clear_cart_now
+            @if(session('clear_cart_now'))
+            console.log('Session clear_cart_now terdeteksi di halaman katalog');
+            localStorage.removeItem('borrowingCart');
+            cart = [];
+            // Hapus session via AJAX
+            fetch('{{ route("kaprodi.borrowings.clear-cart-session") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            }).catch(err => console.error('Error:', err));
+            @endif
+
+            const savedCart = localStorage.getItem('borrowingCart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                if (!Array.isArray(cart)) {
+                    cart = [];
+                    localStorage.removeItem('borrowingCart');
+                }
             }
+        } catch (e) {
+            console.error('Error loading cart:', e);
+            cart = [];
+            localStorage.removeItem('borrowingCart');
         }
-    } catch (e) {
-        console.error('Error loading cart:', e);
-        cart = [];
-        localStorage.removeItem('borrowingCart');
+        updateCartDisplay();
     }
-    updateCartDisplay();
-}
 
-function updateCartDisplay() {
-    const cartCount = document.getElementById('cartCount');
-    const cartItems = document.getElementById('cartItems');
-    const floatingCart = document.getElementById('floatingCart');
-    
-    if (!cartCount || !cartItems || !floatingCart) return;
-    
-    cartCount.textContent = cart.length;
-    
-    if (cart.length === 0) {
-        floatingCart.style.display = 'none';
-        return;
-    }
-    
-    floatingCart.style.display = 'block';
-    
-    let html = '';
-    cart.forEach((item, index) => {
-        html += `
+    function updateCartDisplay() {
+        const cartCount = document.getElementById('cartCount');
+        const cartItems = document.getElementById('cartItems');
+        const floatingCart = document.getElementById('floatingCart');
+
+        if (!cartCount || !cartItems || !floatingCart) return;
+
+        cartCount.textContent = cart.length;
+
+        if (cart.length === 0) {
+            floatingCart.style.display = 'none';
+            return;
+        }
+
+        floatingCart.style.display = 'block';
+
+        let html = '';
+        cart.forEach((item, index) => {
+            html += `
             <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                 <div>
                     <small class="fw-semibold d-block">${item.title.length > 30 ? item.title.substring(0, 30) + '...' : item.title}</small>
@@ -375,98 +394,100 @@ function updateCartDisplay() {
                 </button>
             </div>
         `;
-    });
-    cartItems.innerHTML = html;
-}
-
-function addToCart(bookId, title, maxStock) {
-    const existing = cart.find(item => item.id === bookId);
-    
-    if (existing) {
-        if (existing.quantity < maxStock) {
-            existing.quantity++;
-        } else {
-            alert('Stok tidak mencukupi!');
-            return;
-        }
-    } else {
-        cart.push({
-            id: parseInt(bookId),
-            title: title,
-            quantity: 1,
-            maxStock: parseInt(maxStock)
         });
+        cartItems.innerHTML = html;
     }
-    
-    localStorage.setItem('borrowingCart', JSON.stringify(cart));
-    updateCartDisplay();
-    
-    // Visual feedback
-    const button = event.target;
-    const originalHtml = button.innerHTML;
-    button.innerHTML = '<i class="bi bi-check"></i>';
-    button.classList.remove('btn-outline-primary');
-    button.classList.add('btn-success');
-    
-    setTimeout(() => {
-        button.innerHTML = originalHtml;
-        button.classList.remove('btn-success');
-        button.classList.add('btn-outline-primary');
-    }, 1000);
-}
 
-function removeFromCart(index) {
-    cart.splice(index, 1);
-    localStorage.setItem('borrowingCart', JSON.stringify(cart));
-    updateCartDisplay();
-}
+    function addToCart(bookId, title, maxStock) {
+        const existing = cart.find(item => item.id === bookId);
 
-function clearCart() {
-    if (confirm('Kosongkan keranjang?')) {
-        cart = [];
+        if (existing) {
+            if (existing.quantity < maxStock) {
+                existing.quantity++;
+            } else {
+                alert('Stok tidak mencukupi!');
+                return;
+            }
+        } else {
+            cart.push({
+                id: parseInt(bookId),
+                title: title,
+                quantity: 1,
+                maxStock: parseInt(maxStock)
+            });
+        }
+
+        localStorage.setItem('borrowingCart', JSON.stringify(cart));
+        updateCartDisplay();
+
+        // Visual feedback
+        const button = event.target;
+        const originalHtml = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check"></i>';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-success');
+
+        setTimeout(() => {
+            button.innerHTML = originalHtml;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-primary');
+        }, 1000);
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
         localStorage.setItem('borrowingCart', JSON.stringify(cart));
         updateCartDisplay();
     }
-}
 
-// Hapus cart jika ada parameter clear_cart dari server
-@if(session('clear_cart'))
-    localStorage.removeItem('borrowingCart');
-    cart = [];
-@endif
+    function clearCart() {
+        if (confirm('Kosongkan keranjang?')) {
+            cart = [];
+            localStorage.setItem('borrowingCart', JSON.stringify(cart));
+            updateCartDisplay();
+        }
+    }
 
-// Load cart on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadCart();
-});
-
-// Event listener untuk tombol add to cart (menggunakan dataset)
-document.querySelectorAll('.add-to-cart').forEach(button => {
-    button.addEventListener('click', function() {
-        const bookId = this.dataset.id;
-        const title = this.dataset.title;
-        const stock = parseInt(this.dataset.stock);
-        
-        addToCart(bookId, title, stock);
+    // Load cart on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCart();
     });
-});
 
-// Auto submit filters
-let searchTimeout;
-document.querySelector('input[name="search"]')?.addEventListener('keyup', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        this.form.submit();
-    }, 500);
-});
+    // Event listener untuk tombol add to cart
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const bookId = this.dataset.id;
+            const title = this.dataset.title;
+            const stock = parseInt(this.dataset.stock);
+            addToCart(bookId, title, stock);
+        });
+    });
 
-document.querySelector('select[name="category"]')?.addEventListener('change', function() {
-    this.form.submit();
-});
+    // Auto submit filters
+    let searchTimeout;
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
 
-document.querySelector('select[name="availability"]')?.addEventListener('change', function() {
-    this.form.submit();
-});
+    const categorySelect = document.querySelector('select[name="category"]');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+
+    const availabilitySelect = document.querySelector('select[name="availability"]');
+    if (availabilitySelect) {
+        availabilitySelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
 </script>
 @endpush
 @endsection

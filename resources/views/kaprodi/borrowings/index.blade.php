@@ -1,4 +1,3 @@
-{{-- resources/views/kaprodi/borrowings/index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Status Permintaan Saya')
@@ -15,55 +14,6 @@
             <i class="bi bi-plus-circle me-1"></i> Ajukan Permintaan Baru
         </a>
     </div>
-
-    <!-- Statistik Sederhana -->
-    <!-- <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-primary bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-envelope fs-4 text-primary"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Permintaan</h6>
-                            <h3 class="mb-0 fw-bold">{{ $totalBorrowings }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-warning bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-clock-history fs-4 text-warning"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Menunggu</h6>
-                            <h3 class="mb-0 fw-bold">{{ $pendingBorrowings }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 bg-success bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-check-circle fs-4 text-success"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Disetujui</h6>
-                            <h3 class="mb-0 fw-bold">{{ $approvedBorrowings ?? 0 }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> -->
 
     <!-- Tabel Permintaan -->
     <div class="card border-0 shadow-sm">
@@ -90,42 +40,40 @@
                         @forelse($borrowings as $borrowing)
                         <tr>
                             <td class="px-4">
-                                <strong>{{ $borrowing->borrowing_number }}</strong>
+                                <strong>{{ $borrowing->borrowing_number ?? 'BRW-' . str_pad($borrowing->id, 4, '0', STR_PAD_LEFT) }}</strong>
                             </td>
                             <td class="px-4">{{ $borrowing->created_at->format('d/m/Y') }}</td>
                             <td class="px-4">
                                 @foreach($borrowing->items as $item)
-                                    <div>{{ $item->book->title }}</div>
+                                <div>{{ $item->book->title }}</div>
                                 @endforeach
                             </td>
                             <td class="px-4 text-center">{{ $borrowing->total_items }}</td>
                             <td class="px-4 text-center">
                                 @php
-                                    $badges = [
-                                        'pending' => ['bg-warning', 'Menunggu'],
-                                        'approved' => ['bg-success', 'Disetujui'],
-                                        'cancelled' => ['bg-danger', 'Ditolak']
-                                    ];
-                                    $badge = $badges[$borrowing->status] ?? ['bg-secondary', $borrowing->status];
+                                $badges = [
+                                'pending' => ['bg-warning', 'Menunggu'],
+                                'approved' => ['bg-success', 'Disetujui'],
+                                'cancelled' => ['bg-danger', 'Dibatalkan'],
+                                'rejected' => ['bg-danger', 'Ditolak']
+                                ];
+                                $badge = $badges[$borrowing->status] ?? ['bg-secondary', $borrowing->status];
                                 @endphp
                                 <span class="badge {{ $badge[0] }} bg-opacity-10 text-{{ str_replace('bg-', '', $badge[0]) }} px-3 py-2">
                                     {{ $badge[1] }}
                                 </span>
                             </td>
                             <td class="px-4 text-center">
-                                <a href="{{ route('kaprodi.borrowings.show', $borrowing->id) }}" 
-                                   class="btn btn-sm btn-outline-info">
+                                <a href="{{ route('kaprodi.borrowings.show', $borrowing->id) }}"
+                                    class="btn btn-sm btn-outline-info">
                                     <i class="bi bi-eye me-1"></i> Detail
                                 </a>
                                 @if($borrowing->status == 'pending')
-                                    <form action="{{ route('kaprodi.borrowings.cancel', $borrowing->id) }}" 
-                                          method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                                onclick="return confirm('Batalkan permintaan ini?')">
-                                            <i class="bi bi-x-circle me-1"></i> Batalkan
-                                        </button>
-                                    </form>
+                                <button type="button"
+                                    onclick="cancelBorrowing({{ $borrowing->id }})"
+                                    class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle me-1"></i> Batalkan
+                                </button>
                                 @endif
                             </td>
                         </tr>
@@ -145,5 +93,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Pagination -->
+    @if(isset($borrowings) && $borrowings->hasPages())
+    <div class="d-flex justify-content-center mt-4">
+        {{ $borrowings->withQueryString()->links('pagination::bootstrap-5') }}
+    </div>
+    @endif
 </div>
+
+@push('scripts')
+<script>
+    function cancelBorrowing(id) {
+        if (confirm('Apakah Anda yakin ingin membatalkan permintaan ini?')) {
+            fetch(`{{ url('kaprodi/borrowings') }}/${id}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Gagal membatalkan permintaan');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan: ' + error.message);
+                });
+        }
+    }
+</script>
+@endpush
 @endsection

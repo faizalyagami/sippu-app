@@ -18,10 +18,10 @@ class BorrowingSeeder extends Seeder
 
         // Ambil semua user kaprodi (role_id = 2)
         $kaprodiUsers = User::where('role_id', 2)->get();
-        
+
         // Ambil semua buku yang aktif
         $books = Book::where('is_active', true)->get();
-        
+
         if ($kaprodiUsers->isEmpty()) {
             $this->command->error('No kaprodi users found. Please run UserSeeder first.');
             return;
@@ -39,36 +39,36 @@ class BorrowingSeeder extends Seeder
         for ($i = 1; $i <= 50; $i++) {
             // Pilih user kaprodi secara acak
             $user = $kaprodiUsers->random();
-            
+
             // Pilih 1-3 buku secara acak
             $selectedBooks = $books->random(rand(1, 3));
-            
+
             // Hitung total items
             $totalItems = 0;
             $borrowingItems = [];
-            
+
             foreach ($selectedBooks as $book) {
                 $quantity = rand(1, min(3, $book->available_stock));
                 if ($quantity == 0) continue;
-                
+
                 $totalItems += $quantity;
                 $borrowingItems[] = [
                     'book' => $book,
                     'quantity' => $quantity
                 ];
             }
-            
+
             if (empty($borrowingItems)) continue;
-            
+
             // Generate tanggal permintaan acak (1-60 hari yang lalu)
             $requestDate = Carbon::now()->subDays(rand(1, 60));
-            
+
             // Tentukan status (hanya 3 status)
             $status = $this->determineStatus();
-            
+
             // Set expected_return_date ke tanggal yang sama + 14 hari (default)
             $expectedReturnDate = $requestDate->copy()->addDays(14);
-            
+
             // Buat borrowing (sebagai permintaan)
             $borrowing = Borrowing::create([
                 'user_id' => $user->id,
@@ -89,7 +89,7 @@ class BorrowingSeeder extends Seeder
             foreach ($borrowingItems as $item) {
                 $book = $item['book'];
                 $quantity = $item['quantity'];
-                
+
                 BorrowingItem::create([
                     'borrowing_id' => $borrowing->id,
                     'book_id' => $book->id,
@@ -97,7 +97,7 @@ class BorrowingSeeder extends Seeder
                     'returned_quantity' => 0,
                     'damaged_quantity' => 0,
                     'lost_quantity' => 0,
-                    'status' => 'borrowed',
+                    'status' => 'pending',
                     'condition_notes' => null,
                     'return_date' => null,
                     'created_at' => $requestDate,
@@ -106,7 +106,7 @@ class BorrowingSeeder extends Seeder
             }
 
             $totalBorrowings++;
-            
+
             if ($i % 10 == 0) {
                 $this->command->info("Created {$i} permintaan...");
             }
@@ -121,7 +121,7 @@ class BorrowingSeeder extends Seeder
     private function determineStatus()
     {
         $rand = rand(1, 100);
-        
+
         // Distribusi: 40% pending, 35% approved, 25% cancelled
         if ($rand <= 40) {
             return 'pending';
@@ -149,7 +149,7 @@ class BorrowingSeeder extends Seeder
             'Bahan diskusi kelas',
             'Referensi praktikum',
         ];
-        
+
         return $purposes[array_rand($purposes)];
     }
 
@@ -166,7 +166,7 @@ class BorrowingSeeder extends Seeder
             'Semoga tersedia',
             'Untuk keperluan mendesak',
         ];
-        
+
         return $notes[array_rand($notes)];
     }
 
@@ -185,7 +185,7 @@ class BorrowingSeeder extends Seeder
             'Sedang dalam masa pemeliharaan',
             'Buku sudah dipesan oleh peminjam lain',
         ];
-        
+
         return $reasons[array_rand($reasons)];
     }
 }

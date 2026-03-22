@@ -13,9 +13,8 @@
         </h4>
     </div>
 
-    <!-- Statistik Cards (4 Cards) -->
+    <!-- Statistik Cards -->
     <div class="row g-4 mb-4">
-        <!-- Total Permintaan -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -32,8 +31,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Menunggu -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -50,8 +47,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Disetujui -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -68,8 +63,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Tidak Tersedia (Ditolak) -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
@@ -98,11 +91,11 @@
                         <span class="input-group-text bg-white border-end-0">
                             <i class="bi bi-search text-muted"></i>
                         </span>
-                        <input type="text" 
-                               name="search" 
-                               class="form-control border-start-0 ps-0" 
-                               placeholder="No. Permintaan / Peminjam"
-                               value="{{ request('search') }}">
+                        <input type="text"
+                            name="search"
+                            class="form-control border-start-0 ps-0"
+                            placeholder="No. Permintaan / Peminjam"
+                            value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -144,304 +137,225 @@
                             <th class="px-4 py-3 text-center" width="8%">Jumlah</th>
                             <th class="px-4 py-3 text-center" width="10%">Status</th>
                             <th class="px-4 py-3 text-center" width="10%">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($borrowings as $borrowing)
-                        <tr>
-                            <td class="px-4">{{ $loop->iteration }}</td>
-                            <td class="px-4">
-                                <strong>{{ $borrowing->borrowing_number }}</strong>
-                            </td>
-                            <td class="px-4">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <strong>{{ $borrowing->user->name }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ $borrowing->user->faculty ?? '-' }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4">{{ $borrowing->created_at->format('d/m/Y') }}</td>
-                            <td class="px-4">
-                                @foreach($borrowing->items as $item)
-                                    <div class="d-flex align-items-center mb-1">
-                                        <i class="bi bi-book text-primary me-1"></i>
-                                        <span>{{ $item->book->title }}</span>
-                                    </div>
-                                @endforeach
-                            </td>
-                            <td class="px-4 text-center">{{ $borrowing->total_items }}</td>
-                            <td class="px-4 text-center">
-                                @php
-                                    $badges = [
-                                        'pending' => ['bg-warning', 'Menunggu'],
-                                        'approved' => ['bg-success', 'Disetujui'],
-                                        'cancelled' => ['bg-danger', 'Tidak Tersedia']
-                                    ];
-                                    $badge = $badges[$borrowing->status] ?? ['bg-secondary', $borrowing->status];
-                                @endphp
-                                <span class="badge {{ $badge[0] }} bg-opacity-10 text-{{ str_replace('bg-', '', $badge[0]) }} px-3 py-2">
-                                    {{ $badge[1] }}
-                                </span>
-                            </td>
-                            <td class="px-4 text-center">
-                                <div class="btn-group">
-                                    <a href="{{ route('admin.borrowings.show', $borrowing->id) }}" 
-                                       class="btn btn-sm btn-outline-info" 
-                                       title="Detail">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    
-                                    @if($borrowing->status == 'pending')
-                                        <button type="button" 
-                                                class="btn btn-sm btn-outline-success" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#approveModal{{ $borrowing->id }}"
-                                                title="Setujui">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
-                                        <button type="button" 
-                                                class="btn btn-sm btn-outline-danger" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#rejectModal{{ $borrowing->id }}"
-                                                title="Tolak">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Modal Approve -->
-                        <div class="modal fade" id="approveModal{{ $borrowing->id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title fw-semibold">
-                                            <i class="bi bi-check-circle text-success me-2"></i>
-                                            Setujui Permintaan
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form action="{{ route('admin.borrowings.approve', $borrowing->id) }}" method="POST">
-                                        @csrf
-                                        <div class="modal-body">
-                                            <p>Yakin ingin menyetujui permintaan ini?</p>
-                                            <div class="bg-light p-3 rounded-3">
-                                                <p class="mb-1"><strong>No. Permintaan:</strong> {{ $borrowing->borrowing_number }}</p>
-                                                <p class="mb-1"><strong>Pemohon:</strong> {{ $borrowing->user->name }}</p>
-                                                <p class="mb-0"><strong>Buku yang diminta:</strong></p>
-                                                <ul class="mb-0 mt-1">
-                                                    @foreach($borrowing->items as $item)
-                                                        <li>{{ $item->book->title }} ({{ $item->quantity }} eks)</li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                            <button type="submit" class="btn btn-success">Setujui</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Modal Reject -->
-                        <div class="modal fade" id="rejectModal{{ $borrowing->id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title fw-semibold">
-                                            <i class="bi bi-x-circle text-danger me-2"></i>
-                                            Tolak Permintaan
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form action="{{ route('admin.borrowings.reject', $borrowing->id) }}" method="POST">
-                                        @csrf
-                                        <div class="modal-body">
-                                            <p>Yakin ingin menolak permintaan ini?</p>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold">Alasan Penolakan</label>
-                                                <textarea name="rejection_reason" class="form-control" rows="3" required></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                            <button type="submit" class="btn btn-danger">Tolak</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-5">
-                                <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
-                                <h5 class="text-muted">Tidak ada permintaan masuk</h5>
-                                <p class="text-muted mt-2">Belum ada permintaan dari kaprodi</p>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
             </div>
-
-            <!-- Pagination - PERBAIKAN DI SINI -->
-            @if($borrowings->hasPages())
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center px-4 py-3 border-top">
-                <div class="text-muted small mb-2 mb-md-0">
-                    Menampilkan {{ $borrowings->firstItem() ?? 0 }} - {{ $borrowings->lastItem() ?? 0 }} 
-                    dari {{ $borrowings->total() }} data
-                </div>
-                <nav aria-label="Page navigation">
-                    <ul class="pagination pagination-sm mb-0">
-                        {{-- Previous Page Link --}}
-                        @if($borrowings->onFirstPage())
-                            <li class="page-item disabled">
-                                <span class="page-link" aria-hidden="true">
-                                    <i class="bi bi-chevron-left"></i>
-                                </span>
-                            </li>
-                        @else
-                            <li class="page-item">
-                                <a class="page-link" href="{{ $borrowings->previousPageUrl() }}" aria-label="Previous">
-                                    <i class="bi bi-chevron-left"></i>
-                                </a>
-                            </li>
-                        @endif
-
-                        {{-- Pagination Elements --}}
-                        @foreach($borrowings->getUrlRange(max(1, $borrowings->currentPage() - 2), min($borrowings->lastPage(), $borrowings->currentPage() + 2)) as $page => $url)
-                            @if($page == $borrowings->currentPage())
-                                <li class="page-item active" aria-current="page">
-                                    <span class="page-link">{{ $page }}</span>
-                                </li>
-                            @else
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                                </li>
-                            @endif
+            </thead>
+            <tbody>
+                @forelse($borrowings as $borrowing)
+                <tr>
+                    <td class="px-4">{{ $loop->iteration }}</td>
+                    <td class="px-4">
+                        <strong>{{ $borrowing->borrowing_number }}</strong>
+                    </td>
+                    <td class="px-4">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                                style="width: 35px; height: 35px;">
+                                {{ strtoupper(substr($borrowing->user->name, 0, 1)) }}
+                            </div>
+                            <div>
+                                <strong>{{ $borrowing->user->name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ $borrowing->user->faculty ?? '-' }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4">{{ $borrowing->created_at->format('d/m/Y') }}</td>
+                    <td class="px-4">
+                        @foreach($borrowing->items as $item)
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-book text-primary me-1"></i>
+                            <span>{{ $item->book->title }}</span>
+                        </div>
                         @endforeach
+                    </td>
+                    <td class="px-4 text-center">{{ $borrowing->total_items }}</td>
+                    <td class="px-4 text-center">
+                        @php
+                        $badges = [
+                        'pending' => ['bg-warning', 'Menunggu'],
+                        'approved' => ['bg-success', 'Disetujui'],
+                        'cancelled' => ['bg-danger', 'Tidak Tersedia']
+                        ];
+                        $badge = $badges[$borrowing->status] ?? ['bg-secondary', $borrowing->status];
+                        @endphp
+                        <span class="badge {{ $badge[0] }} bg-opacity-10 text-{{ str_replace('bg-', '', $badge[0]) }} px-3 py-2">
+                            {{ $badge[1] }}
+                        </span>
+                    </td>
+                    <td class="px-4 text-center">
+                        <a href="{{ route('admin.borrowings.show', $borrowing->id) }}"
+                            class="btn btn-sm btn-outline-info"
+                            title="Detail">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                        <h5 class="text-muted">Tidak ada permintaan masuk</h5>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+            </table>
+        </div>
 
-                        {{-- Next Page Link --}}
-                        @if($borrowings->hasMorePages())
-                            <li class="page-item">
-                                <a class="page-link" href="{{ $borrowings->nextPageUrl() }}" aria-label="Next">
-                                    <i class="bi bi-chevron-right"></i>
-                                </a>
-                            </li>
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center px-4 py-3 border-top">
+            <div class="text-muted small">
+                Menampilkan {{ $borrowings->firstItem() ?? 0 }} - {{ $borrowings->lastItem() ?? 0 }}
+                dari {{ $borrowings->total() }} data
+            </div>
+            @if($borrowings->hasPages())
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    {{-- Previous Page Link --}}
+                    @if($borrowings->onFirstPage())
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                    @else
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $borrowings->previousPageUrl() }}" rel="prev">&laquo;</a>
+                    </li>
+                    @endif
+
+                    {{-- Pagination Elements --}}
+                    @php
+                    $start = max(1, $borrowings->currentPage() - 2);
+                    $end = min($borrowings->lastPage(), $borrowings->currentPage() + 2);
+                    @endphp
+
+                    @if($start > 1)
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $borrowings->url(1) }}">1</a>
+                    </li>
+                    @if($start > 2)
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    @endif
+                    @endif
+
+                    @for($page = $start; $page <= $end; $page++)
+                        @if($page==$borrowings->currentPage())
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">{{ $page }}</span>
+                        </li>
                         @else
-                            <li class="page-item disabled">
-                                <span class="page-link" aria-hidden="true">
-                                    <i class="bi bi-chevron-right"></i>
-                                </span>
-                            </li>
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $borrowings->url($page) }}">{{ $page }}</a>
+                        </li>
                         @endif
-                    </ul>
-                </nav>
-            </div>
-            @else
-            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-top">
-                <div class="text-muted small">
-                    Menampilkan {{ $borrowings->firstItem() ?? 0 }} - {{ $borrowings->lastItem() ?? 0 }} 
-                    dari {{ $borrowings->total() }} data
-                </div>
-            </div>
+                        @endfor
+
+                        @if($end < $borrowings->lastPage())
+                            @if($end < $borrowings->lastPage() - 1)
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                @endif
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $borrowings->url($borrowings->lastPage()) }}">{{ $borrowings->lastPage() }}</a>
+                                </li>
+                                @endif
+
+                                {{-- Next Page Link --}}
+                                @if($borrowings->hasMorePages())
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $borrowings->nextPageUrl() }}" rel="next">&raquo;</a>
+                                </li>
+                                @else
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;</span>
+                                </li>
+                                @endif
+                </ul>
+            </nav>
             @endif
         </div>
     </div>
 </div>
+</div>
 
 <style>
-.card {
-    border-radius: 12px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important;
-}
-
-.table th {
-    font-weight: 600;
-    color: #495057;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.badge {
-    font-weight: 500;
-}
-
-.bg-opacity-10 {
-    --bs-bg-opacity: 0.1;
-}
-
-.pagination {
-    gap: 2px;
-}
-
-.pagination .page-link {
-    border: none;
-    color: #6c757d;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    transition: all 0.2s;
-    min-width: 32px;
-    text-align: center;
-}
-
-.pagination .page-item.active .page-link {
-    background-color: #0d6efd;
-    color: white;
-}
-
-.pagination .page-link:hover {
-    background-color: #e9ecef;
-    color: #0d6efd;
-}
-
-.pagination .page-item.disabled .page-link {
-    background-color: transparent;
-    color: #adb5bd;
-    pointer-events: none;
-}
-
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-}
-
-.modal-content {
-    border-radius: 16px;
-}
-
-.modal-header {
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    border-radius: 16px 16px 0 0;
-}
-
-.modal-footer {
-    border-top: 1px solid rgba(0,0,0,0.05);
-    border-radius: 0 0 16px 16px;
-}
-
-@media (max-width: 768px) {
-    .table {
-        font-size: 0.9rem;
+    .card {
+        border-radius: 12px;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
-    
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .table th {
+        font-weight: 600;
+        color: #495057;
+        white-space: nowrap;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .badge {
+        font-weight: 500;
+    }
+
+    .bg-opacity-10 {
+        --bs-bg-opacity: 0.1;
+    }
+
+    .pagination {
+        gap: 4px;
+    }
+
     .pagination .page-link {
-        padding: 0.3rem 0.6rem;
-        min-width: 28px;
+        border: none;
+        color: #6c757d;
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background-color: transparent;
     }
-}
+
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    }
+
+    .pagination .page-link:hover:not(.active) {
+        background-color: #e9ecef;
+        color: #667eea;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        background-color: transparent;
+        color: #adb5bd;
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+    }
+
+    @media (max-width: 768px) {
+        .table {
+            font-size: 0.85rem;
+        }
+
+        .pagination .page-link {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.5rem;
+        }
+    }
 </style>
 @endsection
